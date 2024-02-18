@@ -17,13 +17,14 @@ pub trait Drawable {
         frame: &mut Frame,
         display: &Display<WindowSurface>,
         program: &Program,
+        game_state: &GameState,
     ) -> Result<(), Box<dyn Error>>;
 }
 
 /// Paddle
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Paddle {
-    /// Location of the center of the paddle
+    /// Position of the center of the paddle
     pub x: f32,
 }
 impl Paddle {
@@ -55,9 +56,11 @@ impl Drawable for Paddle {
         frame: &mut Frame,
         display: &Display<WindowSurface>,
         program: &Program,
+        game_state: &GameState,
     ) -> Result<(), Box<dyn Error>> {
         let uniforms = uniform! {
             offset: [self.x, Self::VERTICAL_OFFSET, 0.0],
+            window_aspect: [game_state.window_width, game_state.window_height],
         };
         let vertices = VertexBuffer::new(display, &self.get_model())?;
         frame.draw(
@@ -73,6 +76,8 @@ impl Drawable for Paddle {
     }
 }
 
+// Game playfield
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Playfield {}
 impl Playfield {
     pub const COLOR: [f32; 3] = [1.0, 1.0, 1.0];
@@ -112,9 +117,11 @@ impl Drawable for Playfield {
         frame: &mut Frame,
         display: &Display<WindowSurface>,
         program: &Program,
+        game_state: &GameState,
     ) -> Result<(), Box<dyn Error>> {
         let uniforms = uniform! {
             offset: [0.0_f32, 0.0_f32, 0.0_f32],
+            window_aspect: [game_state.window_width, game_state.window_height],
         };
         let vertices = VertexBuffer::new(display, &self.get_model())?;
         frame.draw(
@@ -127,6 +134,34 @@ impl Drawable for Playfield {
             &DrawParameters::default(),
         )?;
         Ok(())
+    }
+}
+
+/// Information relevant to the renderer
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct GameState {
+    pub frame_count: u64,
+    pub then: Instant,
+
+    pub mouse_x_relative: f32,
+    pub mouse_y_relative: f32,
+
+    pub window_width: f32,
+    pub window_height: f32,
+}
+impl GameState {
+    pub fn new(window: &Window) -> GameState {
+        let window_size = window.inner_size();
+        GameState {
+            frame_count: 0,
+            then: Instant::now(),
+
+            mouse_x_relative: 0.0,
+            mouse_y_relative: 0.0,
+
+            window_width: (window_size.width as f32),
+            window_height: (window_size.height as f32),
+        }
     }
 }
 
@@ -158,11 +193,10 @@ fn main() {
     .expect("unable to compile shaders, exiting");
 
     // TMP
-    let mut frame_count: u32 = 0;
-    let then = Instant::now();
     let mut paddle = Paddle { x: 0.0 };
     let playfield = Playfield {};
-    let mut mouse_position = PhysicalPosition { x: 0.0, y: 0.0 };
+
+    let mut game_state = GameState::new(&window);
 
     event_loop
         .run(move |event, window_target| match event {
@@ -170,10 +204,13 @@ fn main() {
                 event: WindowEvent::CloseRequested,
                 ..
             } => {
-                let time_elapsed = Instant::now().duration_since(then).as_secs_f32();
-                println!("frame_count: {}", frame_count);
+                let time_elapsed = Instant::now().duration_since(game_state.then).as_secs_f32();
+                println!("frame_count: {}", game_state.frame_count);
                 println!("time_elapsed: {} secs", time_elapsed);
-                println!("frames per second: {}", frame_count as f32 / time_elapsed);
+                println!(
+                    "frames per second: {}",
+                    game_state.frame_count as f32 / time_elapsed
+                );
 
                 window_target.exit();
             }
@@ -181,41 +218,54 @@ fn main() {
                 event: WindowEvent::CursorMoved { position: p, .. },
                 ..
             } => {
-                mouse_position = p;
+                let PhysicalSize {
+                    width: window_width,
+                    height: window_height,
+                } = window.inner_size();
+
+                game_state.mouse_x_relative =
+                    (p.x as f32 / (window.inner_size().width / 2) as f32) - 1.0;
+                game_state.mouse_y_relative =
+                    (p.y as f32 / (window.inner_size().height / 2) as f32) - 1.0;
+
+                // correct for aspect ratio
+                if window_width > window_height {
+                    game_state.mouse_x_relative *= window_width as f32 / window_height as f32;
+                } else {
+                    game_state.mouse_y_relative *= window_height as f32 / window_width as f32;
+                }
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Resized(s),
+                ..
+            } => {
+                game_state.window_width = s.width as f32;
+                game_state.window_height = s.height as f32;
             }
             Event::AboutToWait => {
                 // move paddle to mouse
-                let mouse_relative_x_pos =
-                    (mouse_position.x / (window.inner_size().width / 2) as f64) - 1.0;
-
-                paddle.x = (mouse_relative_x_pos as f32)
+                paddle.x = (game_state.mouse_x_relative)
                     .clamp(-1.0 + (Paddle::WIDTH / 2.0), 1.0 - (Paddle::WIDTH / 2.0));
 
                 // draw a frame
                 let mut frame = display.draw();
 
-                frame.clear(
-                    None,
-                    Some((0.0, 0.0, 0.0, 1.0)),
-                    false,
-                    None,
-                    None,
-                );
+                frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
 
                 // draw playfield
                 playfield
-                    .draw(&mut frame, &display, &program)
+                    .draw(&mut frame, &display, &program, &game_state)
                     .expect("unable to draw playfield to frame, exiting");
 
                 // draw paddle
                 paddle
-                    .draw(&mut frame, &display, &program)
+                    .draw(&mut frame, &display, &program, &game_state)
                     .expect("unable to draw paddle to frame, exiting");
 
                 // wrap up
                 frame.finish().expect("unable to finish frame, exiting");
 
-                frame_count += 1;
+                game_state.frame_count += 1;
             }
             _ => (),
         })
