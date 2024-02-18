@@ -76,6 +76,77 @@ impl Drawable for Paddle {
     }
 }
 
+/// Paddle
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Ball {
+    /// Position of the center of the ball
+    pub x: f32,
+    pub y: f32,
+
+    /// Velocity
+    pub x_v: f32,
+    pub y_v: f32,
+}
+impl Ball {
+    pub const WIDTH: f32 = 0.025;
+    pub const HEIGHT: f32 = 0.025;
+    pub const COLOR: [f32; 3] = [0.259, 0.051, 0.671];
+
+    pub fn get_model(&self) -> Vec<Vertex> {
+        vec![
+            Vertex {
+                position: [(Ball::WIDTH / 2.0), (Ball::HEIGHT / 2.0), 0.0],
+                color: Ball::COLOR,
+            },
+            Vertex {
+                position: [-(Ball::WIDTH / 2.0), (Ball::HEIGHT / 2.0), 0.0],
+                color: Ball::COLOR,
+            },
+            Vertex {
+                position: [-(Ball::WIDTH / 2.0), -(Ball::HEIGHT / 2.0), 0.0],
+                color: Ball::COLOR,
+            },
+            Vertex {
+                position: [(Ball::WIDTH / 2.0), (Ball::HEIGHT / 2.0), 0.0],
+                color: Ball::COLOR,
+            },
+            Vertex {
+                position: [-(Ball::WIDTH / 2.0), -(Ball::HEIGHT / 2.0), 0.0],
+                color: Ball::COLOR,
+            },
+            Vertex {
+                position: [(Ball::WIDTH / 2.0), -(Ball::HEIGHT / 2.0), 0.0],
+                color: Ball::COLOR,
+            },
+        ]
+    }
+}
+impl Drawable for Ball {
+    fn draw(
+        &self,
+        frame: &mut Frame,
+        display: &Display<WindowSurface>,
+        program: &Program,
+        game_state: &GameState,
+    ) -> Result<(), Box<dyn Error>> {
+        let uniforms = uniform! {
+            offset: [self.x, self.y, 0.0],
+            window_aspect: [game_state.window_width, game_state.window_height],
+        };
+        let vertices = VertexBuffer::new(display, &self.get_model())?;
+        frame.draw(
+            &vertices,
+            IndicesSource::NoIndices {
+                primitives: glium::index::PrimitiveType::TrianglesList,
+            },
+            program,
+            &uniforms,
+            &DrawParameters::default(),
+        )?;
+        Ok(())
+    }
+}
+
 // Game playfield
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Playfield {}
@@ -143,6 +214,8 @@ pub struct GameState {
     pub frame_count: u64,
     pub then: Instant,
 
+    pub last_frame_was: Option<Instant>,
+
     pub mouse_x_relative: f32,
     pub mouse_y_relative: f32,
 
@@ -155,6 +228,7 @@ impl GameState {
         GameState {
             frame_count: 0,
             then: Instant::now(),
+            last_frame_was: None,
 
             mouse_x_relative: 0.0,
             mouse_y_relative: 0.0,
@@ -195,6 +269,7 @@ fn main() {
     // TMP
     let mut paddle = Paddle { x: 0.0 };
     let playfield = Playfield {};
+    let mut ball = Ball { x: 0.0, y: 0.0, x_v: 0.5, y_v: -0.86602540378 };
 
     let mut game_state = GameState::new(&window);
 
@@ -243,9 +318,49 @@ fn main() {
                 game_state.window_height = s.height as f32;
             }
             Event::AboutToWait => {
+                // timey-wimey
+                let now = Instant::now();
+                let delta_t = match game_state.last_frame_was {
+                    Some(then) => now.duration_since(then),
+                    None => Duration::ZERO,
+                };
+
                 // move paddle to mouse
                 paddle.x = (game_state.mouse_x_relative)
                     .clamp(-1.0 + (Paddle::WIDTH / 2.0), 1.0 - (Paddle::WIDTH / 2.0));
+
+                // move ball
+                ball.x += ball.x_v * delta_t.as_secs_f32();
+                ball.y += ball.y_v * delta_t.as_secs_f32();
+
+                // reflect ball with...
+
+                // ...playfield
+                if ball.x + Ball::WIDTH / 2.0 > 1.0 {
+                    ball.x_v *= -1.0;
+                    ball.x -= ball.x + Ball::WIDTH / 2.0 - 1.0;
+                }
+                if ball.x - Ball::WIDTH / 2.0 < -1.0 {
+                    ball.x_v *= -1.0;
+                    ball.x -= ball.x - Ball::WIDTH / 2.0 + 1.0;
+                }
+                if ball.y + Ball::HEIGHT / 2.0 > 1.0 {
+                    ball.y_v *= -1.0;
+                    ball.y -= ball.y + Ball::HEIGHT / 2.0 - 1.0;
+                }
+                if ball.y - Ball::HEIGHT / 2.0 < -1.0 {
+                    ball.y_v *= -1.0;
+                    ball.y -= ball.y - Ball::HEIGHT / 2.0 + 1.0;
+                }
+
+                // ...paddle
+                if ball.x - (Ball::WIDTH / 2.0) < paddle.x + (Paddle::WIDTH / 2.0)
+                    && ball.x + (Ball::WIDTH / 2.0) > paddle.x - (Paddle::WIDTH / 2.0)
+                    && ball.y - (Ball::HEIGHT / 2.0) < Paddle::VERTICAL_OFFSET + (Paddle::HEIGHT / 2.0)
+                    && ball.y + (Ball::HEIGHT / 2.0) > Paddle::VERTICAL_OFFSET - (Paddle::HEIGHT / 2.0) {
+                        ball.y_v *= -1.0;
+                        ball.y -= ball.y - Ball::HEIGHT / 2.0 - Paddle::VERTICAL_OFFSET;
+                    }
 
                 // draw a frame
                 let mut frame = display.draw();
@@ -257,6 +372,11 @@ fn main() {
                     .draw(&mut frame, &display, &program, &game_state)
                     .expect("unable to draw playfield to frame, exiting");
 
+                // draw ball
+                ball
+                    .draw(&mut frame, &display, &program, &game_state)
+                    .expect("unable to draw ball to frame, exiting");
+
                 // draw paddle
                 paddle
                     .draw(&mut frame, &display, &program, &game_state)
@@ -266,6 +386,7 @@ fn main() {
                 frame.finish().expect("unable to finish frame, exiting");
 
                 game_state.frame_count += 1;
+                game_state.last_frame_was = Some(now);
             }
             _ => (),
         })
