@@ -73,6 +73,63 @@ impl Drawable for Paddle {
     }
 }
 
+pub struct Playfield {}
+impl Playfield {
+    pub const COLOR: [f32; 3] = [1.0, 1.0, 1.0];
+
+    pub fn get_model(&self) -> Vec<Vertex> {
+        vec![
+            Vertex {
+                position: [1.0, 1.0, 0.0],
+                color: Playfield::COLOR,
+            },
+            Vertex {
+                position: [-1.0, 1.0, 0.0],
+                color: Playfield::COLOR,
+            },
+            Vertex {
+                position: [-1.0, -1.0, 0.0],
+                color: Playfield::COLOR,
+            },
+            Vertex {
+                position: [1.0, 1.0, 0.0],
+                color: Playfield::COLOR,
+            },
+            Vertex {
+                position: [-1.0, -1.0, 0.0],
+                color: Playfield::COLOR,
+            },
+            Vertex {
+                position: [1.0, -1.0, 0.0],
+                color: Playfield::COLOR,
+            },
+        ]
+    }
+}
+impl Drawable for Playfield {
+    fn draw(
+        &self,
+        frame: &mut Frame,
+        display: &Display<WindowSurface>,
+        program: &Program,
+    ) -> Result<(), Box<dyn Error>> {
+        let uniforms = uniform! {
+            offset: [0.0_f32, 0.0_f32, 0.0_f32],
+        };
+        let vertices = VertexBuffer::new(display, &self.get_model())?;
+        frame.draw(
+            &vertices,
+            IndicesSource::NoIndices {
+                primitives: glium::index::PrimitiveType::TrianglesList,
+            },
+            program,
+            &uniforms,
+            &DrawParameters::default(),
+        )?;
+        Ok(())
+    }
+}
+
 /// Flat-Shaded Vertex
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vertex {
@@ -104,6 +161,7 @@ fn main() {
     let mut frame_count: u32 = 0;
     let then = Instant::now();
     let mut paddle = Paddle { x: 0.0 };
+    let playfield = Playfield {};
     let mut mouse_position = PhysicalPosition { x: 0.0, y: 0.0 };
 
     event_loop
@@ -136,19 +194,18 @@ fn main() {
                 // draw a frame
                 let mut frame = display.draw();
 
-                let colors = frame_count.to_ne_bytes();
                 frame.clear(
                     None,
-                    Some((
-                        colors[0] as f32 / 255_f32,
-                        colors[1] as f32 / 255_f32,
-                        colors[2] as f32 / 255_f32,
-                        1.0,
-                    )),
+                    Some((0.0, 0.0, 0.0, 1.0)),
                     false,
                     None,
                     None,
                 );
+
+                // draw playfield
+                playfield
+                    .draw(&mut frame, &display, &program)
+                    .expect("unable to draw playfield to frame, exiting");
 
                 // draw paddle
                 paddle
