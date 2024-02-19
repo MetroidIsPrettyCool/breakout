@@ -2,8 +2,8 @@ use glium::backend::glutin::SimpleWindowBuilder;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoopBuilder};
 
-use breakout::logic::GameState;
-use breakout::view::WindowState;
+use breakout::logic::LogicState;
+use breakout::view::ViewState;
 
 fn main() {
     // create event loop
@@ -15,9 +15,9 @@ fn main() {
     // set up window
     let (window, display) = SimpleWindowBuilder::new().build(&event_loop);
 
-    let mut game_state = GameState::new();
+    let mut logic_state = LogicState::new();
 
-    let mut window_state = WindowState::new(window, display);
+    let mut view_state = ViewState::new(window, display);
 
     event_loop
         .run(move |event, window_target| match event {
@@ -25,16 +25,16 @@ fn main() {
                 event: WindowEvent::CloseRequested,
                 ..
             } => {
-                breakout::on_close_requested(window_target, &mut window_state, &mut game_state);
+                breakout::on_close_requested(window_target, &mut view_state, &mut logic_state);
             }
             Event::WindowEvent {
                 event: WindowEvent::CursorMoved { position: p, .. },
                 ..
             } => {
-                breakout::on_cursor_moved(&mut window_state, p);
+                breakout::on_cursor_moved(&mut view_state, p);
             }
             Event::AboutToWait => {
-                breakout::run(&mut window_state, &mut game_state);
+                breakout::run(&mut view_state, &mut logic_state);
             }
             _ => (),
         })

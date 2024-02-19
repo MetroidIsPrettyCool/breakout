@@ -9,14 +9,14 @@ use glutin::surface::WindowSurface;
 use std::time::Instant;
 use winit::window::Window;
 
-use crate::logic::GameState;
+use crate::logic::LogicState;
 
 #[cfg(test)]
 mod tests;
 
 /// Information relevant to the renderer
 #[derive(Debug)]
-pub struct WindowState {
+pub struct ViewState {
     pub frame_count: u64,
     pub then: Instant,
 
@@ -32,8 +32,8 @@ pub struct WindowState {
     pub window: Window,
     pub display: Display<WindowSurface>,
 }
-impl WindowState {
-    pub fn new(window: Window, display: Display<WindowSurface>) -> WindowState {
+impl ViewState {
+    pub fn new(window: Window, display: Display<WindowSurface>) -> ViewState {
         // set up shaders
         let program = glium::Program::from_source(
             &display,
@@ -44,7 +44,7 @@ impl WindowState {
         .expect("unable to compile shaders, exiting");
 
         let window_size = window.inner_size();
-        WindowState {
+        ViewState {
             frame_count: 0,
             then: Instant::now(),
             last_frame_was: None,
@@ -59,6 +59,26 @@ impl WindowState {
             window,
             display,
         }
+    }
+
+    /// Draw a frame
+    pub fn render_frame(&mut self, logic_state: &LogicState) {
+        let mut frame = self.display.draw();
+
+        frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
+
+        let mut vertices = logic_state.playfield.get_vertices();
+        vertices.extend(logic_state.ball.get_vertices());
+        vertices.extend(logic_state.paddle.get_vertices());
+        for brick in logic_state.bricks.iter() {
+            vertices.extend(brick.get_vertices());
+        }
+
+        draw_flat_vertices(&vertices, &mut frame, &self)
+            .expect("unable to complete draw call, exiting");
+
+        // wrap up
+        frame.finish().expect("unable to finish frame, exiting");
     }
 }
 
@@ -126,7 +146,7 @@ pub const fn iso_tri_down(width: f32, height: f32, color: [f32; 3]) -> [Vertex; 
 fn draw_flat_vertices(
     vertices: &Vec<Vertex>,
     frame: &mut Frame,
-    window_state: &WindowState,
+    window_state: &ViewState,
 ) -> Result<(), Box<dyn Error>> {
     let uniforms = uniform! {
         window_aspect: window_state.window.inner_size().width as f32 / window_state.window.inner_size().height as f32,
@@ -142,24 +162,4 @@ fn draw_flat_vertices(
         &DrawParameters::default(),
     )?;
     Ok(())
-}
-
-/// Draw a frame
-pub fn render_frame(window_state: &mut WindowState, game_state: &GameState) {
-    let mut frame = window_state.display.draw();
-
-    frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
-
-    let mut vertices = game_state.playfield.get_vertices();
-    vertices.extend(game_state.ball.get_vertices());
-    vertices.extend(game_state.paddle.get_vertices());
-    for brick in game_state.bricks.iter() {
-        vertices.extend(brick.get_vertices());
-    }
-
-    draw_flat_vertices(&vertices, &mut frame, &window_state)
-        .expect("unable to complete draw call, exiting");
-
-    // wrap up
-    frame.finish().expect("unable to finish frame, exiting");
 }

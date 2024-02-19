@@ -78,14 +78,19 @@ impl GameObject {
         )
     }
 
-    pub fn ball() -> GameObject {
+    pub fn ball(num: u32) -> GameObject {
+        let start_angle = if num % 2 == 0 {
+            300_f32
+        } else {
+            240_f32
+        };
         Self::new(
             0.0,
             -0.25,
             BALL_WIDTH,
             BALL_HEIGHT,
-            f32::cos(300_f32.to_degrees()),
-            f32::sin(300_f32.to_degrees()),
+            f32::cos(start_angle.to_radians()),
+            f32::sin(start_angle.to_radians()),
             crate::view::quad(0.025, BALL_HEIGHT, BALL_COLOR).to_vec(),
         )
     }

@@ -7,15 +7,15 @@ use winit::{
 };
 
 pub mod logic;
-use logic::GameState;
+use logic::LogicState;
 
 pub mod view;
-use view::WindowState;
+use view::ViewState;
 
 pub fn on_close_requested(
     window_target: &EventLoopWindowTarget<()>,
-    window_state: &mut WindowState,
-    _game_state: &mut GameState,
+    window_state: &mut ViewState,
+    _game_state: &mut LogicState,
 ) {
     let time_elapsed = Instant::now()
         .duration_since(window_state.then)
@@ -30,7 +30,7 @@ pub fn on_close_requested(
     window_target.exit();
 }
 
-pub fn on_cursor_moved(window_state: &mut WindowState, p: PhysicalPosition<f64>) {
+pub fn on_cursor_moved(window_state: &mut ViewState, p: PhysicalPosition<f64>) {
     let PhysicalSize {
         width: window_width,
         height: window_height,
@@ -49,19 +49,19 @@ pub fn on_cursor_moved(window_state: &mut WindowState, p: PhysicalPosition<f64>)
     }
 }
 
-pub fn run(window_state: &mut WindowState, game_state: &mut GameState) {
+pub fn run(view_state: &mut ViewState, logic_state: &mut LogicState) {
     // timey-wimey
     let now = Instant::now();
-    let delta_t = match window_state.last_frame_was {
+    let delta_t = match view_state.last_frame_was {
         Some(then) => now.duration_since(then),
         None => Duration::ZERO,
     };
 
-    logic::tick(window_state, game_state, delta_t);
+    logic_state.tick(view_state, delta_t);
 
-    view::render_frame(window_state, game_state);
+    view_state.render_frame(logic_state);
 
     // state management
-    window_state.frame_count += 1;
-    window_state.last_frame_was = Some(now);
+    view_state.frame_count += 1;
+    view_state.last_frame_was = Some(now);
 }
