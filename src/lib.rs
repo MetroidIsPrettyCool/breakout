@@ -1,6 +1,5 @@
 #![feature(const_fn_floating_point_arithmetic)]
 
-use glium::Surface;
 use std::time::{Duration, Instant};
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -11,10 +10,9 @@ pub mod logic;
 use logic::GameState;
 
 pub mod game_objs;
-use game_objs::{Ball, Brick, Paddle, Playfield};
 
 pub mod view;
-use view::{Drawable, WindowState};
+use view::WindowState;
 
 pub fn on_close_requested(
     window_target: &EventLoopWindowTarget<()>,
@@ -61,66 +59,11 @@ pub fn run(window_state: &mut WindowState, game_state: &mut GameState) {
         None => Duration::ZERO,
     };
 
-    // move paddle to mouse
-    game_state.paddle.x = (window_state.mouse_x_relative)
-        .clamp(-1.0 + (Paddle::WIDTH / 2.0), 1.0 - (Paddle::WIDTH / 2.0));
+    logic::tick(window_state, game_state, delta_t);
 
-    // move ball
-    game_state.ball.x += game_state.ball.x_v * delta_t.as_secs_f32();
-    game_state.ball.y += game_state.ball.y_v * delta_t.as_secs_f32();
+    view::render_frame(window_state, game_state);
 
-    // check ball collisions with...
-
-    // ...playfield
-    if game_state.ball.x + Ball::WIDTH / 2.0 > 1.0 {
-        game_state.ball.x_v *= -1.0;
-        game_state.ball.x -= game_state.ball.x + Ball::WIDTH / 2.0 - 1.0;
-    }
-    if game_state.ball.x - Ball::WIDTH / 2.0 < -1.0 {
-        game_state.ball.x_v *= -1.0;
-        game_state.ball.x -= game_state.ball.x - Ball::WIDTH / 2.0 + 1.0;
-    }
-    if game_state.ball.y + Ball::HEIGHT / 2.0 > 1.0 {
-        game_state.ball.y_v *= -1.0;
-        game_state.ball.y -= game_state.ball.y + Ball::HEIGHT / 2.0 - 1.0;
-    }
-    if game_state.ball.y - Ball::HEIGHT / 2.0 < -1.0 {
-        game_state.ball.y_v *= -1.0;
-        game_state.ball.y -= game_state.ball.y - Ball::HEIGHT / 2.0 + 1.0;
-    }
-
-    // ...paddle
-    if game_state.ball.x - (Ball::WIDTH / 2.0) < game_state.paddle.x + (Paddle::WIDTH / 2.0)
-        && game_state.ball.x + (Ball::WIDTH / 2.0) > game_state.paddle.x - (Paddle::WIDTH / 2.0)
-        && game_state.ball.y - (Ball::HEIGHT / 2.0)
-            < Paddle::VERTICAL_OFFSET + (Paddle::HEIGHT / 2.0)
-        && game_state.ball.y + (Ball::HEIGHT / 2.0)
-            > Paddle::VERTICAL_OFFSET - (Paddle::HEIGHT / 2.0)
-    {
-        game_state.ball.y_v *= -1.0;
-        game_state.ball.y -= game_state.ball.y - Ball::HEIGHT / 2.0 - Paddle::VERTICAL_OFFSET;
-    }
-
-    // draw a frame
-    let mut frame = window_state.display.draw();
-
-    frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
-
-    let mut vertices = game_state.playfield.get_vertices();
-    vertices.extend(game_state.ball.get_vertices());
-    vertices.extend(game_state.paddle.get_vertices());
-    for column in game_state.bricks.iter() {
-        for brick in column {
-            vertices.extend(brick.get_vertices());
-        }
-    }
-
-    view::draw(&vertices, &mut frame, &window_state)
-        .expect("unable to complete draw call, exiting");
-
-    // wrap up
-    frame.finish().expect("unable to finish frame, exiting");
-
+    // state management
     window_state.frame_count += 1;
     window_state.last_frame_was = Some(now);
 }

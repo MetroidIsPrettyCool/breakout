@@ -1,4 +1,6 @@
-use crate::game_objs::{Ball, Brick, Paddle, Playfield};
+use std::time::Duration;
+
+use crate::{game_objs::{Ball, Brick, Paddle, Playfield}, view::WindowState};
 
 /// Game state
 // #[derive(Copy, Clone, Debug, PartialEq)]
@@ -30,5 +32,47 @@ impl GameState {
             ball,
             bricks,
         }
+    }
+}
+
+pub fn tick(window_state: &WindowState, game_state: &mut GameState, delta_t: Duration) {
+    // move paddle to mouse
+    game_state.paddle.x = (window_state.mouse_x_relative)
+        .clamp(-1.0 + (Paddle::WIDTH / 2.0), 1.0 - (Paddle::WIDTH / 2.0));
+
+    // move ball
+    game_state.ball.x += game_state.ball.x_v * delta_t.as_secs_f32();
+    game_state.ball.y += game_state.ball.y_v * delta_t.as_secs_f32();
+
+    // check ball collisions with...
+
+    // ...playfield
+    if game_state.ball.x + Ball::WIDTH / 2.0 > 1.0 {
+        game_state.ball.x_v *= -1.0;
+        game_state.ball.x -= game_state.ball.x + Ball::WIDTH / 2.0 - 1.0;
+    }
+    if game_state.ball.x - Ball::WIDTH / 2.0 < -1.0 {
+        game_state.ball.x_v *= -1.0;
+        game_state.ball.x -= game_state.ball.x - Ball::WIDTH / 2.0 + 1.0;
+    }
+    if game_state.ball.y + Ball::HEIGHT / 2.0 > 1.0 {
+        game_state.ball.y_v *= -1.0;
+        game_state.ball.y -= game_state.ball.y + Ball::HEIGHT / 2.0 - 1.0;
+    }
+    if game_state.ball.y - Ball::HEIGHT / 2.0 < -1.0 {
+        game_state.ball.y_v *= -1.0;
+        game_state.ball.y -= game_state.ball.y - Ball::HEIGHT / 2.0 + 1.0;
+    }
+
+    // ...paddle
+    if game_state.ball.x - (Ball::WIDTH / 2.0) < game_state.paddle.x + (Paddle::WIDTH / 2.0)
+        && game_state.ball.x + (Ball::WIDTH / 2.0) > game_state.paddle.x - (Paddle::WIDTH / 2.0)
+        && game_state.ball.y - (Ball::HEIGHT / 2.0)
+            < Paddle::VERTICAL_OFFSET + (Paddle::HEIGHT / 2.0)
+        && game_state.ball.y + (Ball::HEIGHT / 2.0)
+            > Paddle::VERTICAL_OFFSET - (Paddle::HEIGHT / 2.0)
+    {
+        game_state.ball.y_v *= -1.0;
+        game_state.ball.y -= game_state.ball.y - Ball::HEIGHT / 2.0 - Paddle::VERTICAL_OFFSET;
     }
 }

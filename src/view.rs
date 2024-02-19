@@ -9,6 +9,8 @@ use glutin::surface::WindowSurface;
 use std::time::Instant;
 use winit::window::Window;
 
+use crate::logic::GameState;
+
 #[cfg(test)]
 mod tests;
 
@@ -121,7 +123,7 @@ pub const fn iso_tri_down(width: f32, height: f32, color: [f32; 3]) -> [Vertex; 
     ]
 }
 
-pub fn draw(
+fn draw_flat_vertices(
     vertices: &Vec<Vertex>,
     frame: &mut Frame,
     window_state: &WindowState,
@@ -140,4 +142,26 @@ pub fn draw(
         &DrawParameters::default(),
     )?;
     Ok(())
+}
+
+/// Draw a frame
+pub fn render_frame(window_state: &mut WindowState, game_state: &GameState) {
+    let mut frame = window_state.display.draw();
+
+    frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
+
+    let mut vertices = game_state.playfield.get_vertices();
+    vertices.extend(game_state.ball.get_vertices());
+    vertices.extend(game_state.paddle.get_vertices());
+    for column in game_state.bricks.iter() {
+        for brick in column {
+            vertices.extend(brick.get_vertices());
+        }
+    }
+
+    draw_flat_vertices(&vertices, &mut frame, &window_state)
+        .expect("unable to complete draw call, exiting");
+
+    // wrap up
+    frame.finish().expect("unable to finish frame, exiting");
 }
