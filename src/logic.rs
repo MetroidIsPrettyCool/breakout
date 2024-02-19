@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::control::ControlState;
 
@@ -18,6 +18,8 @@ pub struct LogicState {
 
     pub too_late: bool,
     pub bounce: bool,
+
+    pub then: Instant,
 }
 impl LogicState {
     pub fn new() -> LogicState {
@@ -32,10 +34,12 @@ impl LogicState {
 
             too_late: false,
             bounce: false,
+
+	    then: Instant::now(),
         }
     }
 
-    pub fn update(&mut self, control_state: &ControlState, delta_t: Duration) {
+    pub fn update(&mut self, control_state: &ControlState, now: Instant, delta_t: Duration) {
         // upkeep
         self.bounce = false;
 
@@ -132,7 +136,7 @@ impl LogicState {
                 self.bounce = true;
 
                 // update score
-                self.score += 1;
+                self.score += 1 * time_elapsed_to_score_mult(now.duration_since(self.then));
 
                 // destroy the brick
                 self.bricks.remove(index);
@@ -147,4 +151,16 @@ fn objs_overlap(a: &GameObject, b: &GameObject) -> bool {
         && a.x + a.width / 2.0 > b.x - b.width / 2.0
         && a.y - a.height / 2.0 < b.y + b.height / 2.0
         && a.y + a.height / 2.0 > b.y - b.height / 2.0
+}
+
+fn time_elapsed_to_score_mult(elapsed: Duration) -> u32 {
+    if elapsed < Duration::from_secs(10) {
+	10
+    } else if elapsed < Duration::from_secs(30) {
+	5
+    } else if elapsed < Duration::from_secs(60) {
+	2
+    } else {
+	1
+    }
 }

@@ -19,7 +19,6 @@ mod tests;
 /// Information relevant to the renderer
 pub struct ViewState {
     pub frame_count: u64,
-    pub then: Instant,
 
     pub last_frame_was: Option<Instant>,
 
@@ -70,7 +69,6 @@ impl ViewState {
         let window_size = window.inner_size();
         ViewState {
             frame_count: 0,
-            then: Instant::now(),
             last_frame_was: None,
 
             window_width: (window_size.width as f32),

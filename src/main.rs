@@ -27,7 +27,7 @@ fn main() {
                 event: WindowEvent::CloseRequested,
                 ..
             } => {
-                let time_elapsed = Instant::now().duration_since(view_state.then).as_secs_f32();
+                let time_elapsed = Instant::now().duration_since(logic_state.then).as_secs_f32();
                 println!("frame_count: {}", view_state.frame_count);
                 println!("time_elapsed: {} secs", time_elapsed);
                 println!(
@@ -51,7 +51,7 @@ fn main() {
                     None => Duration::ZERO,
                 };
 
-                logic_state.update(&control_state, delta_t);
+                logic_state.update(&control_state, now, delta_t);
 
                 view_state.update(&logic_state, now);
             }

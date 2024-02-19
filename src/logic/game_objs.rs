@@ -1,11 +1,11 @@
 use crate::view::Drawable;
 use crate::view::Vertex;
 
-pub const PADDLE_WIDTH: f32 = 0.175;
+pub const PADDLE_WIDTH: f32 = 0.25;
 pub const PADDLE_HEIGHT: f32 = 0.025;
 pub const PADDLE_COLOR: [f32; 3] = [0.0, 1.0, 0.5];
 pub const PADDLE_VERTICAL_OFFSET: f32 = -0.8;
-pub const PADDLE_PUSH_SCALE: f32 = 50.0;
+pub const PADDLE_PUSH_SCALE: f32 = 600.0;
 
 pub const BALL_WIDTH: f32 = 0.025;
 pub const BALL_HEIGHT: f32 = 0.025;
