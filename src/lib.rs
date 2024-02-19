@@ -1,13 +1,9 @@
 use glium::backend::glutin::Display;
-use glium::backend::glutin::SimpleWindowBuilder;
 use glium::index::IndicesSource;
 use glium::{implement_vertex, uniform, DrawParameters, Frame, Program, Surface, VertexBuffer};
 use glutin::surface::WindowSurface;
 use std::error::Error;
 use std::time::{Duration, Instant};
-use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoopBuilder};
 use winit::window::Window;
 
 use winit::event_loop::EventLoopWindowTarget;
@@ -70,10 +66,10 @@ pub struct GameState {
     pub bricks: Vec<Vec<Brick>>,
 }
 impl GameState {
-    pub fn new(display: &Display<WindowSurface>) -> GameState {
-        let paddle = Paddle::new(0.0, display);
-        let playfield = Playfield::new(display);
-        let ball = Ball::new(0.0, 0.0, 0.5, -0.86602540378, display);
+    pub fn new() -> GameState {
+        let paddle = Paddle::new(0.0);
+        let playfield = Playfield::new();
+        let ball = Ball::new(0.0, 0.0, 0.5, -0.86602540378);
         let mut bricks: Vec<Vec<Brick>> = Vec::new();
         for i in 0..Brick::ROWS {
             bricks.push(Vec::new());
@@ -81,7 +77,7 @@ impl GameState {
             for j in 0..Brick::COLUMNS {
                 // y coords are top half only
                 let y = j as f32 * 1.0 / Brick::COLUMNS as f32;
-                bricks[i].push(Brick::new(x, y, display));
+                bricks[i].push(Brick::new(x, y));
             }
         }
         GameState {
@@ -124,8 +120,6 @@ pub trait Drawable {
 pub struct Paddle {
     /// Position of the center of the paddle
     pub x: f32,
-    /// vbo
-    pub vbo: VertexBuffer<Vertex>,
 }
 impl Paddle {
     pub const WIDTH: f32 = 0.25;
@@ -148,11 +142,9 @@ impl Paddle {
         },
     ];
 
-    fn new(x: f32, display: &Display<WindowSurface>) -> Paddle {
+    fn new(x: f32) -> Paddle {
         Paddle {
-            x,
-            vbo: VertexBuffer::immutable(display, &Self::MODEL)
-                .expect("unable to create paddle VBO, exiting"),
+            x
         }
     }
 }
@@ -177,9 +169,6 @@ pub struct Ball {
     /// Velocity
     pub x_v: f32,
     pub y_v: f32,
-
-    /// vbo
-    pub vbo: VertexBuffer<Vertex>,
 }
 impl Ball {
     pub const WIDTH: f32 = 0.025;
@@ -213,14 +202,12 @@ impl Ball {
         },
     ];
 
-    fn new(x: f32, y: f32, x_v: f32, y_v: f32, display: &Display<WindowSurface>) -> Ball {
+    fn new(x: f32, y: f32, x_v: f32, y_v: f32) -> Ball {
         Ball {
             x,
             y,
             x_v,
             y_v,
-            vbo: VertexBuffer::immutable(display, &Self::MODEL)
-                .expect("unable to create ball VBO, exiting"),
         }
     }
 }
@@ -238,8 +225,6 @@ impl Drawable for Ball {
 // Game playfield
 #[derive(Debug)]
 pub struct Playfield {
-    /// vbo
-    pub vbo: VertexBuffer<Vertex>,
 }
 impl Playfield {
     pub const COLOR: [f32; 3] = [1.0, 1.0, 1.0];
@@ -271,10 +256,8 @@ impl Playfield {
         },
     ];
 
-    fn new(display: &Display<WindowSurface>) -> Playfield {
+    fn new() -> Playfield {
         Playfield {
-            vbo: VertexBuffer::immutable(display, &Self::MODEL)
-                .expect("unable to create playfield VBO, exiting"),
         }
     }
 }
@@ -290,9 +273,6 @@ pub struct Brick {
     /// Position of the center of the brick
     pub x: f32,
     pub y: f32,
-
-    /// vbo
-    pub vbo: VertexBuffer<Vertex>,
 }
 impl Brick {
     pub const COLOR: [f32; 3] = [0.5, 0.0, 0.1];
@@ -329,12 +309,10 @@ impl Brick {
         },
     ];
 
-    pub fn new(x: f32, y: f32, display: &Display<WindowSurface>) -> Brick {
+    pub fn new(x: f32, y: f32) -> Brick {
         Brick {
             x,
             y,
-            vbo: VertexBuffer::immutable(display, &Self::MODEL)
-                .expect("unable to create brick VBO, exiting"),
         }
     }
 }

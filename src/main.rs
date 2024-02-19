@@ -1,14 +1,8 @@
-use glium::backend::glutin::Display;
 use glium::backend::glutin::SimpleWindowBuilder;
-use glium::index::IndicesSource;
-use glium::{implement_vertex, uniform, DrawParameters, Frame, Program, Surface, VertexBuffer};
-use glutin::surface::WindowSurface;
-use std::error::Error;
-use std::time::{Duration, Instant};
-use winit::dpi::{PhysicalPosition, PhysicalSize};
+use std::time::Instant;
+use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoopBuilder};
-use winit::window::Window;
 
 use breakout::GameState;
 use breakout::WindowState;
@@ -23,7 +17,7 @@ fn main() {
     // set up window
     let (window, display) = SimpleWindowBuilder::new().build(&event_loop);
 
-    let mut game_state = GameState::new(&display);
+    let mut game_state = GameState::new();
 
     let mut window_state = WindowState::new(window, display);
 
