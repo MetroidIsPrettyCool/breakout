@@ -12,9 +12,12 @@ pub struct LogicState {
     pub playfield: GameObject,
     pub ball: GameObject,
     pub bricks: Vec<GameObject>,
+
     pub balls_remaining: u32,
     pub score: u32,
+
     pub too_late: bool,
+    pub bounce: bool,
 }
 impl LogicState {
     pub fn new() -> LogicState {
@@ -23,13 +26,19 @@ impl LogicState {
             playfield: GameObject::playfield(),
             ball: GameObject::ball(2),
             bricks: GameObject::bricks(),
+
             balls_remaining: 2,
             score: 0,
+
             too_late: false,
+            bounce: false,
         }
     }
 
-    pub fn tick(&mut self, control_state: &ControlState, delta_t: Duration) {
+    pub fn update(&mut self, control_state: &ControlState, delta_t: Duration) {
+        // upkeep
+        self.bounce = false;
+
         // move paddle to mouse
         let new_paddle_x = (control_state.mouse_x_relative).clamp(
             -1.0 + (self.paddle.width / 2.0),
@@ -49,16 +58,22 @@ impl LogicState {
             // right border
             self.ball.x_v *= -1.0;
             self.ball.x -= self.ball.x + self.ball.width / 2.0 - 1.0;
+
+            self.bounce = true;
         }
         if self.ball.x - self.ball.width / 2.0 < -1.0 {
             // left border
             self.ball.x_v *= -1.0;
             self.ball.x -= self.ball.x - self.ball.width / 2.0 + 1.0;
+
+            self.bounce = true;
         }
         if self.ball.y + self.ball.height / 2.0 > 1.0 {
             // top border
             self.ball.y_v *= -1.0;
             self.ball.y -= self.ball.y + self.ball.height / 2.0 - 1.0;
+
+            self.bounce = true;
         }
         if self.ball.y - self.ball.height / 2.0 < -1.0 {
             // bottom border
@@ -85,6 +100,8 @@ impl LogicState {
             self.ball.x_v += self.paddle.x_v * game_objs::PADDLE_PUSH_SCALE;
             self.ball.y -=
                 self.ball.y - self.ball.height / 2.0 - self.paddle.y - self.paddle.height / 2.0;
+
+            self.bounce = true;
         }
 
         if self.ball.y - self.ball.height / 2.0 < self.paddle.y + self.paddle.height / 2.0 {
@@ -110,6 +127,9 @@ impl LogicState {
                 if overlap_height >= overlap_width {
                     self.ball.x_v *= -1.0;
                 }
+
+
+                self.bounce = true;
 
                 // update score
                 self.score += 1;

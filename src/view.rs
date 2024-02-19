@@ -1,15 +1,14 @@
 use std::error::Error;
-use std::fs::File;
-use std::io::Read;
 
-use alto::{Alto, Buffer, Context, OutputDevice, Source, Stereo, StreamingSource};
-use glium::backend::glutin::Display;
+use alto::{Alto, Context, Source, Stereo, StreamingSource};
+use glium::backend::glutin::{Display, SimpleWindowBuilder};
 use glium::{
     implement_vertex, index::IndicesSource, uniform, DrawParameters, Frame, Program, Surface,
     VertexBuffer,
 };
 use glutin::surface::WindowSurface;
 use std::time::Instant;
+use winit::event_loop::EventLoop;
 use winit::window::Window;
 
 use crate::logic::LogicState;
@@ -33,11 +32,14 @@ pub struct ViewState {
 
     pub al_context: Context,
     pub al_source: StreamingSource,
-    pub bleep: Vec<u8>,
+    pub bleep: &'static [u8],
+    pub bleep_sample_rate: i32,
 }
 impl ViewState {
-    pub fn new(window: Window, display: Display<WindowSurface>) -> ViewState {
-        // set up shaders
+    pub fn new(event_loop: &EventLoop<()>) -> ViewState {
+        // set up opengl and winit
+        let (window, display) = SimpleWindowBuilder::new().build(event_loop);
+
         let flat_shader = glium::Program::from_source(
             &display,
             include_str!("vert.glsl"),
@@ -49,14 +51,21 @@ impl ViewState {
         // set up openal
         let alto =
             Alto::load_default().expect("unable to load default openal implementation, exiting");
-        let al_device = alto.open(None).expect("unable to open openal output device, exiting");
 
-        let mut bleep_f = File::open("src/synth.raw").expect("unable to open synth.wav");
-        let mut bleep: Vec<u8> = Vec::new();
-        bleep_f.read_to_end(&mut bleep);
+        let al_device = alto
+            .open(None)
+            .expect("unable to open openal output device, exiting");
 
-        let al_context = al_device.new_context(None).expect("unable to create openal context, exiting");
-        let al_source = al_context.new_streaming_source().expect("unable to create openal source, exiting");
+        let al_context = al_device
+            .new_context(None)
+            .expect("unable to create openal context, exiting");
+        al_context.set_gain(0.1).expect("unable to set openal context gain, exiting");
+
+        let al_source = al_context
+            .new_streaming_source()
+            .expect("unable to create openal source, exiting");
+
+        let bleep = include_bytes!("synth.raw");
 
         let window_size = window.inner_size();
         ViewState {
@@ -72,22 +81,31 @@ impl ViewState {
             display,
 
             bleep,
+            bleep_sample_rate: 354_000,
             al_context,
             al_source,
         }
     }
 
     /// Draw a frame
-    pub fn render_frame(&mut self, logic_state: &LogicState, now: Instant) {
+    pub fn update(&mut self, logic_state: &LogicState, now: Instant) {
         // TMP
-        if self.frame_count % 180 == 0 {
-            if self.al_source.buffers_processed() == 1 {
-                self.al_source.unqueue_buffer().expect("unable to unqueue al buffer, exiting");
+        if logic_state.bounce {
+            if self.al_source.buffers_queued() == 1 {
+                self.al_source.stop();
+                self.al_source
+                    .unqueue_buffer()
+                    .expect("unable to unqueue al buffer, exiting");
             }
 
-            let buffer = self.al_context.new_buffer::<Stereo<u8>, Vec<u8>>(self.bleep.clone(), 354_000).expect("unable to create openal buffer, exiting");
+            let buffer = self
+                .al_context
+                .new_buffer::<Stereo<u8>, &[u8]>(self.bleep, self.bleep_sample_rate)
+                .expect("unable to create openal buffer, exiting");
 
-            self.al_source.queue_buffer(buffer).expect("unable to queue openal buffer, exiting");
+            self.al_source
+                .queue_buffer(buffer)
+                .expect("unable to queue openal buffer, exiting");
 
             self.al_source.play();
         }

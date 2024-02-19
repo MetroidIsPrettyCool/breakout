@@ -1,6 +1,5 @@
 use std::time::{Duration, Instant};
 
-use glium::backend::glutin::SimpleWindowBuilder;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoopBuilder};
 
@@ -16,11 +15,9 @@ fn main() {
     event_loop.set_control_flow(ControlFlow::Poll);
 
     // set up window
-    let (window, display) = SimpleWindowBuilder::new().build(&event_loop);
-
     let mut logic_state = LogicState::new();
 
-    let mut view_state = ViewState::new(window, display);
+    let mut view_state = ViewState::new(&event_loop);
 
     let mut control_state = ControlState::new();
 
@@ -54,9 +51,9 @@ fn main() {
                     None => Duration::ZERO,
                 };
 
-                logic_state.tick(&control_state, delta_t);
+                logic_state.update(&control_state, delta_t);
 
-                view_state.render_frame(&logic_state, now);
+                view_state.update(&logic_state, now);
             }
             _ => (),
         })
