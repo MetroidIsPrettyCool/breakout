@@ -5,6 +5,7 @@ pub const PADDLE_WIDTH: f32 = 0.175;
 pub const PADDLE_HEIGHT: f32 = 0.025;
 pub const PADDLE_COLOR: [f32; 3] = [0.0, 1.0, 0.5];
 pub const PADDLE_VERTICAL_OFFSET: f32 = -0.8;
+pub const PADDLE_PUSH_SCALE: f32 = 50.0;
 
 pub const BALL_WIDTH: f32 = 0.025;
 pub const BALL_HEIGHT: f32 = 0.025;
@@ -80,9 +81,9 @@ impl GameObject {
 
     pub fn ball(num: u32) -> GameObject {
         let start_angle = if num % 2 == 0 {
-            300_f32
+            290_f32
         } else {
-            240_f32
+            250_f32
         };
         Self::new(
             0.0,

@@ -82,7 +82,7 @@ impl LogicState {
         // paddle
         if !self.too_late && objs_overlap(&self.paddle, &self.ball) {
             self.ball.y_v = self.ball.y_v.abs();
-            self.ball.x_v += self.paddle.x_v * 30.0;
+            self.ball.x_v += self.paddle.x_v * game_objs::PADDLE_PUSH_SCALE;
             self.ball.y -=
                 self.ball.y - self.ball.height / 2.0 - self.paddle.y - self.paddle.height / 2.0;
         }
