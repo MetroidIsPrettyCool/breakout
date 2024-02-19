@@ -80,11 +80,7 @@ impl GameObject {
     }
 
     pub fn ball(num: u32) -> GameObject {
-        let start_angle = if num % 2 == 0 {
-            290_f32
-        } else {
-            250_f32
-        };
+        let start_angle = if num % 2 == 0 { 290_f32 } else { 250_f32 };
         Self::new(
             0.0,
             -0.25,

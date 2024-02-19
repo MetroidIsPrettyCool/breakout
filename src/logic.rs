@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::view::ViewState;
+use crate::control::ControlState;
 
 pub mod game_objs;
 use game_objs::GameObject;
@@ -29,9 +29,9 @@ impl LogicState {
         }
     }
 
-    pub fn tick(&mut self, view_state: &ViewState, delta_t: Duration) {
+    pub fn tick(&mut self, control_state: &ControlState, delta_t: Duration) {
         // move paddle to mouse
-        let new_paddle_x = (view_state.mouse_x_relative).clamp(
+        let new_paddle_x = (control_state.mouse_x_relative).clamp(
             -1.0 + (self.paddle.width / 2.0),
             1.0 - (self.paddle.width / 2.0),
         );

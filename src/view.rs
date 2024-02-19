@@ -22,9 +22,6 @@ pub struct ViewState {
 
     pub last_frame_was: Option<Instant>,
 
-    pub mouse_x_relative: f32,
-    pub mouse_y_relative: f32,
-
     pub window_width: f32,
     pub window_height: f32,
 
@@ -49,9 +46,6 @@ impl ViewState {
             then: Instant::now(),
             last_frame_was: None,
 
-            mouse_x_relative: 0.0,
-            mouse_y_relative: 0.0,
-
             window_width: (window_size.width as f32),
             window_height: (window_size.height as f32),
 
@@ -62,7 +56,7 @@ impl ViewState {
     }
 
     /// Draw a frame
-    pub fn render_frame(&mut self, logic_state: &LogicState) {
+    pub fn render_frame(&mut self, logic_state: &LogicState, now: Instant) {
         let mut frame = self.display.draw();
 
         frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
@@ -79,6 +73,8 @@ impl ViewState {
 
         // wrap up
         frame.finish().expect("unable to finish frame, exiting");
+        self.frame_count += 1;
+        self.last_frame_was = Some(now);
     }
 }
 
