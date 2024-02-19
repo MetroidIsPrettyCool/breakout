@@ -5,12 +5,6 @@ use crate::view::WindowState;
 pub mod game_objs;
 use game_objs::GameObject;
 
-use self::game_objs::{
-    BALL_COLOR, BALL_HEIGHT, BALL_WIDTH, BRICK_COLOR, BRICK_COLUMNS, BRICK_HEIGHT, BRICK_ROWS,
-    BRICK_WIDTH, PADDLE_COLOR, PADDLE_HEIGHT, PADDLE_VERTICAL_OFFSET, PADDLE_WIDTH,
-    PLAYFIELD_COLOR,
-};
-
 /// Game state
 #[derive(Clone, Debug, PartialEq)]
 pub struct GameState {
@@ -24,58 +18,11 @@ pub struct GameState {
 }
 impl GameState {
     pub fn new() -> GameState {
-        let paddle = GameObject::new(
-            0.0,
-            PADDLE_VERTICAL_OFFSET,
-            PADDLE_WIDTH,
-            PADDLE_HEIGHT,
-            0.0,
-            0.0,
-            crate::view::iso_tri_down(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_COLOR).to_vec(),
-        );
-
-        let playfield = GameObject::new(
-            0.0,
-            0.0,
-            2.0,
-            2.0,
-            0.0,
-            0.0,
-            crate::view::quad(2.0, 2.0, PLAYFIELD_COLOR).to_vec(),
-        );
-
-        let ball = GameObject::new(
-            0.0,
-            -0.25,
-            BALL_WIDTH,
-            BALL_HEIGHT,
-            f32::cos(300_f32.to_degrees()),
-            f32::sin(300_f32.to_degrees()),
-            crate::view::quad(0.025, BALL_HEIGHT, BALL_COLOR).to_vec(),
-        );
-
-        let mut bricks: Vec<GameObject> = Vec::new();
-        for i in 0..BRICK_COLUMNS {
-            let x = ((i as f32 + 0.5) * 2.0 / BRICK_COLUMNS as f32) - 1.0;
-            for j in 0..BRICK_ROWS {
-                // y coords are top half only
-                let y = (j as f32 + 0.5) / BRICK_ROWS as f32;
-                bricks.push(GameObject::new(
-                    x,
-                    y,
-                    BRICK_WIDTH,
-                    BRICK_HEIGHT,
-                    0.0,
-                    0.0,
-                    crate::view::quad(BRICK_WIDTH, BRICK_HEIGHT, BRICK_COLOR).to_vec(),
-                ));
-            }
-        }
         GameState {
-            paddle,
-            playfield,
-            ball,
-            bricks,
+            paddle: GameObject::paddle(),
+            playfield: GameObject::playfield(),
+            ball: GameObject::ball(),
+            bricks: GameObject::bricks(),
             balls_remaining: 2,
             score: 0,
             too_late: false,
@@ -123,17 +70,12 @@ pub fn tick(window_state: &WindowState, game_state: &mut GameState, delta_t: Dur
         // bottom border
         if game_state.balls_remaining > 0 {
             game_state.balls_remaining -= 1;
-            game_state.ball = GameObject::new(
-                0.0,
-                -0.25,
-                BALL_WIDTH,
-                BALL_HEIGHT,
-                f32::cos(300_f32.to_degrees()),
-                f32::sin(300_f32.to_degrees()),
-                crate::view::quad(0.025, BALL_HEIGHT, BALL_COLOR).to_vec(),
-            );
+            game_state.ball = GameObject::ball();
             game_state.too_late = false;
-            println!("balls remaining: {}, score: {}", game_state.balls_remaining, game_state.score);
+            println!(
+                "balls remaining: {}, score: {}",
+                game_state.balls_remaining, game_state.score
+            );
         } else {
             println!("game over! score: {}", game_state.score);
             game_state.ball.x = 0.0;
@@ -152,7 +94,9 @@ pub fn tick(window_state: &WindowState, game_state: &mut GameState, delta_t: Dur
             - game_state.paddle.height / 2.0;
     }
 
-    if game_state.ball.y - game_state.ball.height / 2.0 < game_state.paddle.y + game_state.paddle.height / 2.0 {
+    if game_state.ball.y - game_state.ball.height / 2.0
+        < game_state.paddle.y + game_state.paddle.height / 2.0
+    {
         game_state.too_late = true;
     }
 
