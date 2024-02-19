@@ -4,8 +4,7 @@ use winit::dpi::PhysicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoopBuilder};
 
-use breakout::GameState;
-use breakout::WindowState;
+use breakout::state::{GameState, WindowState};
 
 fn main() {
     // create event loop
