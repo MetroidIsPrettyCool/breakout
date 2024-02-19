@@ -18,6 +18,9 @@ pub struct GameState {
     pub playfield: GameObject,
     pub ball: GameObject,
     pub bricks: Vec<GameObject>,
+    pub balls_remaining: u32,
+    pub score: u32,
+    pub too_late: bool,
 }
 impl GameState {
     pub fn new() -> GameState {
@@ -43,7 +46,7 @@ impl GameState {
 
         let ball = GameObject::new(
             0.0,
-            -0.5,
+            -0.25,
             BALL_WIDTH,
             BALL_HEIGHT,
             f32::cos(300_f32.to_degrees()),
@@ -73,6 +76,9 @@ impl GameState {
             playfield,
             ball,
             bricks,
+            balls_remaining: 2,
+            score: 0,
+            too_late: false,
         }
     }
 }
@@ -99,24 +105,46 @@ pub fn tick(window_state: &WindowState, game_state: &mut GameState, delta_t: Dur
 
     // playfield
     if game_state.ball.x + game_state.ball.width / 2.0 > 1.0 {
+        // right border
         game_state.ball.x_v *= -1.0;
         game_state.ball.x -= game_state.ball.x + game_state.ball.width / 2.0 - 1.0;
     }
     if game_state.ball.x - game_state.ball.width / 2.0 < -1.0 {
+        // left border
         game_state.ball.x_v *= -1.0;
         game_state.ball.x -= game_state.ball.x - game_state.ball.width / 2.0 + 1.0;
     }
     if game_state.ball.y + game_state.ball.height / 2.0 > 1.0 {
+        // top border
         game_state.ball.y_v *= -1.0;
         game_state.ball.y -= game_state.ball.y + game_state.ball.height / 2.0 - 1.0;
     }
     if game_state.ball.y - game_state.ball.height / 2.0 < -1.0 {
-        game_state.ball.y_v *= -1.0;
-        game_state.ball.y -= game_state.ball.y - game_state.ball.height / 2.0 + 1.0;
+        // bottom border
+        if game_state.balls_remaining > 0 {
+            game_state.balls_remaining -= 1;
+            game_state.ball = GameObject::new(
+                0.0,
+                -0.25,
+                BALL_WIDTH,
+                BALL_HEIGHT,
+                f32::cos(300_f32.to_degrees()),
+                f32::sin(300_f32.to_degrees()),
+                crate::view::quad(0.025, BALL_HEIGHT, BALL_COLOR).to_vec(),
+            );
+            game_state.too_late = false;
+            println!("balls remaining: {}, score: {}", game_state.balls_remaining, game_state.score);
+        } else {
+            println!("game over! score: {}", game_state.score);
+            game_state.ball.x = 0.0;
+            game_state.ball.y = -0.5;
+            game_state.ball.x_v = 0.0;
+            game_state.ball.y_v = 0.0;
+        }
     }
 
     // paddle
-    if objs_overlap(&game_state.paddle, &game_state.ball) {
+    if !game_state.too_late && objs_overlap(&game_state.paddle, &game_state.ball) {
         game_state.ball.y_v = game_state.ball.y_v.abs();
         game_state.ball.y -= game_state.ball.y
             - game_state.ball.height / 2.0
@@ -124,9 +152,14 @@ pub fn tick(window_state: &WindowState, game_state: &mut GameState, delta_t: Dur
             - game_state.paddle.height / 2.0;
     }
 
+    if game_state.ball.y - game_state.ball.height / 2.0 < game_state.paddle.y + game_state.paddle.height / 2.0 {
+        game_state.too_late = true;
+    }
+
     // bricks
     for (index, brick) in game_state.bricks.iter().enumerate() {
         if objs_overlap(&brick, &game_state.ball) {
+            // bounce the ball
             let overlap_width = ((brick.x + brick.width / 2.0)
                 .min(game_state.ball.x + game_state.ball.width / 2.0)
                 - (brick.x - brick.width / 2.0)
@@ -145,6 +178,10 @@ pub fn tick(window_state: &WindowState, game_state: &mut GameState, delta_t: Dur
                 game_state.ball.x_v *= -1.0;
             }
 
+            // update score
+            game_state.score += 1;
+
+            // destroy the brick
             game_state.bricks.remove(index);
             break;
         }
