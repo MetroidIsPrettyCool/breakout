@@ -1,14 +1,6 @@
-use glium::backend::glutin::Display;
-use glium::index::IndicesSource;
-use glium::{implement_vertex, uniform, DrawParameters, Frame, Program, Surface, VertexBuffer};
-use glutin::surface::WindowSurface;
-use std::error::Error;
-use std::time::{Duration, Instant};
-use winit::window::Window;
-use winit::event_loop::EventLoopWindowTarget;
-
-use crate::Drawable;
-use crate::Vertex;
+use crate::view::quad;
+use crate::view::Drawable;
+use crate::view::Vertex;
 
 /// Paddle
 #[derive(Debug)]
@@ -38,9 +30,7 @@ impl Paddle {
     ];
 
     pub fn new(x: f32) -> Paddle {
-        Paddle {
-            x
-        }
+        Paddle { x }
     }
 }
 impl Drawable for Paddle {
@@ -70,40 +60,10 @@ impl Ball {
     pub const HEIGHT: f32 = 0.025;
     pub const COLOR: [f32; 3] = [0.259, 0.051, 0.671];
 
-    pub const MODEL: [Vertex; 6] = [
-        Vertex {
-            position: [(Ball::WIDTH / 2.0), (Ball::HEIGHT / 2.0), 0.0],
-            color: Ball::COLOR,
-        },
-        Vertex {
-            position: [-(Ball::WIDTH / 2.0), (Ball::HEIGHT / 2.0), 0.0],
-            color: Ball::COLOR,
-        },
-        Vertex {
-            position: [-(Ball::WIDTH / 2.0), -(Ball::HEIGHT / 2.0), 0.0],
-            color: Ball::COLOR,
-        },
-        Vertex {
-            position: [(Ball::WIDTH / 2.0), (Ball::HEIGHT / 2.0), 0.0],
-            color: Ball::COLOR,
-        },
-        Vertex {
-            position: [-(Ball::WIDTH / 2.0), -(Ball::HEIGHT / 2.0), 0.0],
-            color: Ball::COLOR,
-        },
-        Vertex {
-            position: [(Ball::WIDTH / 2.0), -(Ball::HEIGHT / 2.0), 0.0],
-            color: Ball::COLOR,
-        },
-    ];
+    pub const MODEL: [Vertex; 6] = quad(Ball::WIDTH, Ball::HEIGHT, Ball::COLOR);
 
     pub fn new(x: f32, y: f32, x_v: f32, y_v: f32) -> Ball {
-        Ball {
-            x,
-            y,
-            x_v,
-            y_v,
-        }
+        Ball { x, y, x_v, y_v }
     }
 }
 impl Drawable for Ball {
@@ -119,41 +79,14 @@ impl Drawable for Ball {
 
 // Game playfield
 #[derive(Debug)]
-pub struct Playfield {
-}
+pub struct Playfield {}
 impl Playfield {
     pub const COLOR: [f32; 3] = [1.0, 1.0, 1.0];
 
-    pub const MODEL: [Vertex; 6] = [
-        Vertex {
-            position: [1.0, 1.0, 0.0],
-            color: Playfield::COLOR,
-        },
-        Vertex {
-            position: [-1.0, 1.0, 0.0],
-            color: Playfield::COLOR,
-        },
-        Vertex {
-            position: [-1.0, -1.0, 0.0],
-            color: Playfield::COLOR,
-        },
-        Vertex {
-            position: [1.0, 1.0, 0.0],
-            color: Playfield::COLOR,
-        },
-        Vertex {
-            position: [-1.0, -1.0, 0.0],
-            color: Playfield::COLOR,
-        },
-        Vertex {
-            position: [1.0, -1.0, 0.0],
-            color: Playfield::COLOR,
-        },
-    ];
+    pub const MODEL: [Vertex; 6] = quad(2.0, 2.0, Playfield::COLOR);
 
     pub fn new() -> Playfield {
-        Playfield {
-        }
+        Playfield {}
     }
 }
 impl Drawable for Playfield {
@@ -177,38 +110,10 @@ impl Brick {
     pub const ROWS: usize = 20;
     pub const COLUMNS: usize = 40;
 
-    pub const MODEL: [Vertex; 6] = [
-        Vertex {
-            position: [(Brick::WIDTH / 2.0), (Brick::HEIGHT / 2.0), 0.0],
-            color: Brick::COLOR,
-        },
-        Vertex {
-            position: [-(Brick::WIDTH / 2.0), (Brick::HEIGHT / 2.0), 0.0],
-            color: Brick::COLOR,
-        },
-        Vertex {
-            position: [-(Brick::WIDTH / 2.0), -(Brick::HEIGHT / 2.0), 0.0],
-            color: Brick::COLOR,
-        },
-        Vertex {
-            position: [(Brick::WIDTH / 2.0), (Brick::HEIGHT / 2.0), 0.0],
-            color: Brick::COLOR,
-        },
-        Vertex {
-            position: [-(Brick::WIDTH / 2.0), -(Brick::HEIGHT / 2.0), 0.0],
-            color: Brick::COLOR,
-        },
-        Vertex {
-            position: [(Brick::WIDTH / 2.0), -(Brick::HEIGHT / 2.0), 0.0],
-            color: Brick::COLOR,
-        },
-    ];
+    pub const MODEL: [Vertex; 6] = quad(Brick::WIDTH, Brick::HEIGHT, Brick::COLOR);
 
     pub fn new(x: f32, y: f32) -> Brick {
-        Brick {
-            x,
-            y,
-        }
+        Brick { x, y }
     }
 }
 impl Drawable for Brick {

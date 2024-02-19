@@ -1,57 +1,59 @@
-use glium::backend::glutin::Display;
-use glium::index::IndicesSource;
-use glium::{implement_vertex, uniform, DrawParameters, Frame, Program, Surface, VertexBuffer};
-use glutin::surface::WindowSurface;
-use std::error::Error;
-use std::time::{Duration, Instant};
-use winit::window::Window;
-use winit::event_loop::EventLoopWindowTarget;
+#![feature(const_fn_floating_point_arithmetic)]
 
-pub mod state;
-use state::{GameState, WindowState};
+use glium::Surface;
+use std::time::{Duration, Instant};
+use winit::{
+    dpi::{PhysicalPosition, PhysicalSize},
+    event_loop::EventLoopWindowTarget,
+};
+
+pub mod logic;
+use logic::GameState;
 
 pub mod game_objs;
-use game_objs::{Paddle, Ball, Playfield, Brick};
+use game_objs::{Ball, Brick, Paddle, Playfield};
 
-fn draw(
-    vertices: &Vec<Vertex>,
-    frame: &mut Frame,
-    window_state: &WindowState,
-) -> Result<(), Box<dyn Error>> {
-    let uniforms = uniform! {
-        window_aspect: [window_state.window.inner_size().width as f32, window_state.window.inner_size().height as f32],
-    };
-    frame.draw(
-        &VertexBuffer::new(&window_state.display, vertices)
-            .expect("unable to construct vbo, exiting"),
-        IndicesSource::NoIndices {
-            primitives: glium::index::PrimitiveType::TrianglesList,
-        },
-        &window_state.program,
-        &uniforms,
-        &DrawParameters::default(),
-    )?;
-    Ok(())
-}
+pub mod view;
+use view::{Drawable, WindowState};
 
-/// Things that can be drawn to the screen
-pub trait Drawable {
-    fn get_vertices(&self) -> Vec<Vertex>;
-}
-
-/// Flat-Shaded Vertex
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Vertex {
-    pub position: [f32; 3],
-    pub color: [f32; 3],
-}
-implement_vertex!(Vertex, position, color);
-
-pub fn run(
+pub fn on_close_requested(
     window_target: &EventLoopWindowTarget<()>,
     window_state: &mut WindowState,
-    game_state: &mut GameState,
+    _game_state: &mut GameState,
 ) {
+    let time_elapsed = Instant::now()
+        .duration_since(window_state.then)
+        .as_secs_f32();
+    println!("frame_count: {}", window_state.frame_count);
+    println!("time_elapsed: {} secs", time_elapsed);
+    println!(
+        "frames per second: {}",
+        window_state.frame_count as f32 / time_elapsed
+    );
+
+    window_target.exit();
+}
+
+pub fn on_cursor_moved(window_state: &mut WindowState, p: PhysicalPosition<f64>) {
+    let PhysicalSize {
+        width: window_width,
+        height: window_height,
+    } = window_state.window.inner_size();
+
+    window_state.mouse_x_relative =
+        (p.x as f32 / (window_state.window.inner_size().width / 2) as f32) - 1.0;
+    window_state.mouse_y_relative =
+        (p.y as f32 / (window_state.window.inner_size().height / 2) as f32) - 1.0;
+
+    // correct for aspect ratio
+    if window_width > window_height {
+        window_state.mouse_x_relative *= window_width as f32 / window_height as f32;
+    } else {
+        window_state.mouse_y_relative *= window_height as f32 / window_width as f32;
+    }
+}
+
+pub fn run(window_state: &mut WindowState, game_state: &mut GameState) {
     // timey-wimey
     let now = Instant::now();
     let delta_t = match window_state.last_frame_was {
@@ -113,7 +115,8 @@ pub fn run(
         }
     }
 
-    draw(&vertices, &mut frame, &window_state).expect("unable to complete draw call, exiting");
+    view::draw(&vertices, &mut frame, &window_state)
+        .expect("unable to complete draw call, exiting");
 
     // wrap up
     frame.finish().expect("unable to finish frame, exiting");
