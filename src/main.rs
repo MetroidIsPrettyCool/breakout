@@ -10,12 +10,17 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoopBuilder};
 use winit::window::Window;
 
-fn draw(vertices: &Vec<Vertex>, frame: &mut Frame, window_state: &WindowState) -> Result<(), Box<dyn Error>> {
+fn draw(
+    vertices: &Vec<Vertex>,
+    frame: &mut Frame,
+    window_state: &WindowState,
+) -> Result<(), Box<dyn Error>> {
     let uniforms = uniform! {
         window_aspect: [window_state.window.inner_size().width as f32, window_state.window.inner_size().height as f32],
     };
     frame.draw(
-        &VertexBuffer::new(&window_state.display, vertices).expect("unable to construct vbo, exiting"),
+        &VertexBuffer::new(&window_state.display, vertices)
+            .expect("unable to construct vbo, exiting"),
         IndicesSource::NoIndices {
             primitives: glium::index::PrimitiveType::TrianglesList,
         },
@@ -28,27 +33,6 @@ fn draw(vertices: &Vec<Vertex>, frame: &mut Frame, window_state: &WindowState) -
 
 /// Things that can be drawn to the screen
 pub trait Drawable {
-    fn draw(&self, frame: &mut Frame, window_state: &WindowState) -> Result<(), Box<dyn Error>> {
-        let uniforms = uniform! {
-            offset: self.get_vertex_offset(),
-            window_aspect: [window_state.window.inner_size().width as f32, window_state.window.inner_size().height as f32],
-        };
-        frame.draw(
-            self.get_model(),
-            IndicesSource::NoIndices {
-                primitives: glium::index::PrimitiveType::TrianglesList,
-            },
-            &window_state.program,
-            &uniforms,
-            &DrawParameters::default(),
-        )?;
-        Ok(())
-    }
-
-    fn get_model(&self) -> &VertexBuffer<Vertex>;
-
-    fn get_vertex_offset(&self) -> [f32; 3];
-
     fn get_vertices(&self) -> Vec<Vertex>;
 }
 
@@ -90,14 +74,6 @@ impl Paddle {
     }
 }
 impl Drawable for Paddle {
-    fn get_model(&self) -> &VertexBuffer<Vertex> {
-        &self.vbo
-    }
-
-    fn get_vertex_offset(&self) -> [f32; 3] {
-        [self.x, Self::VERTICAL_OFFSET, 0.0]
-    }
-
     fn get_vertices(&self) -> Vec<Vertex> {
         let mut vertices = Self::MODEL;
         for vertex in vertices.iter_mut() {
@@ -166,14 +142,6 @@ impl Ball {
     }
 }
 impl Drawable for Ball {
-    fn get_model(&self) -> &VertexBuffer<Vertex> {
-        &self.vbo
-    }
-
-    fn get_vertex_offset(&self) -> [f32; 3] {
-        [self.x, self.y, 0.0]
-    }
-
     fn get_vertices(&self) -> Vec<Vertex> {
         let mut vertices = Self::MODEL;
         for vertex in vertices.iter_mut() {
@@ -228,14 +196,6 @@ impl Playfield {
     }
 }
 impl Drawable for Playfield {
-    fn get_model(&self) -> &VertexBuffer<Vertex> {
-        &self.vbo
-    }
-
-    fn get_vertex_offset(&self) -> [f32; 3] {
-        [0.0, 0.0, 0.0]
-    }
-
     fn get_vertices(&self) -> Vec<Vertex> {
         Self::MODEL.to_vec()
     }
@@ -296,14 +256,6 @@ impl Brick {
     }
 }
 impl Drawable for Brick {
-    fn get_model(&self) -> &VertexBuffer<Vertex> {
-        &self.vbo
-    }
-
-    fn get_vertex_offset(&self) -> [f32; 3] {
-        [self.x, self.y, 0.0]
-    }
-
     fn get_vertices(&self) -> Vec<Vertex> {
         let mut vertices = Self::MODEL;
         for vertex in vertices.iter_mut() {
@@ -498,30 +450,8 @@ fn main() {
                     }
                 }
 
-                draw(&vertices, &mut frame, &window_state).expect("unable to complete draw call, exiting");
-
-                // // draw playfield
-                // playfield
-                //     .draw(&mut frame, &window_state)
-                //     .expect("unable to draw playfield to frame, exiting");
-
-                // // draw ball
-                // ball.draw(&mut frame, &window_state)
-                //     .expect("unable to draw ball to frame, exiting");
-
-                // // draw paddle
-                // paddle
-                //     .draw(&mut frame, &window_state)
-                //     .expect("unable to draw paddle to frame, exiting");
-
-                // // draw bricks
-                // for column in bricks.iter() {
-                //     for brick in column {
-                //         brick
-                //             .draw(&mut frame, &window_state)
-                //             .expect("unable to draw brick to frame, exiting");
-                //     }
-                // }
+                draw(&vertices, &mut frame, &window_state)
+                    .expect("unable to complete draw call, exiting");
 
                 // wrap up
                 frame.finish().expect("unable to finish frame, exiting");
