@@ -153,10 +153,8 @@ pub fn render_frame(window_state: &mut WindowState, game_state: &GameState) {
     let mut vertices = game_state.playfield.get_vertices();
     vertices.extend(game_state.ball.get_vertices());
     vertices.extend(game_state.paddle.get_vertices());
-    for column in game_state.bricks.iter() {
-        for brick in column {
-            vertices.extend(brick.get_vertices());
-        }
+    for brick in game_state.bricks.iter() {
+        vertices.extend(brick.get_vertices());
     }
 
     draw_flat_vertices(&vertices, &mut frame, &window_state)

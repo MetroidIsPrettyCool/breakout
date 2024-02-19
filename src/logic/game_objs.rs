@@ -13,10 +13,10 @@ pub const BALL_COLOR: [f32; 3] = [0.259, 0.051, 0.671];
 pub const PLAYFIELD_COLOR: [f32; 3] = [1.0, 1.0, 1.0];
 
 pub const BRICK_COLOR: [f32; 3] = [0.5, 0.0, 0.1];
-pub const BRICK_WIDTH: f32 = 0.02;
-pub const BRICK_HEIGHT: f32 = 0.015;
-pub const BRICK_ROWS: usize = 20;
-pub const BRICK_COLUMNS: usize = 40;
+pub const BRICK_WIDTH: f32 = 0.1;
+pub const BRICK_HEIGHT: f32 = 0.06;
+pub const BRICK_ROWS: usize = 12;
+pub const BRICK_COLUMNS: usize = 15;
 
 /// Generic game object
 #[derive(Clone, Debug, PartialEq)]
