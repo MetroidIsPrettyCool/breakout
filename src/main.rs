@@ -17,8 +17,28 @@ pub trait Drawable {
         frame: &mut Frame,
         display: &Display<WindowSurface>,
         program: &Program,
-        game_state: &GameState,
-    ) -> Result<(), Box<dyn Error>>;
+        game_state: &WindowState,
+    ) -> Result<(), Box<dyn Error>> {
+        let uniforms = uniform! {
+            offset: self.get_vertex_offset(),
+            window_aspect: [game_state.window_width, game_state.window_height],
+        };
+        let vertices = VertexBuffer::new(display, &self.get_model())?;
+        frame.draw(
+            &vertices,
+            IndicesSource::NoIndices {
+                primitives: glium::index::PrimitiveType::TrianglesList,
+            },
+            program,
+            &uniforms,
+            &DrawParameters::default(),
+        )?;
+        Ok(())
+    }
+
+    fn get_model(&self) -> Vec<Vertex>;
+
+    fn get_vertex_offset(&self) -> [f32; 3];
 }
 
 /// Paddle
@@ -32,8 +52,9 @@ impl Paddle {
     pub const HEIGHT: f32 = 0.025;
     pub const COLOR: [f32; 3] = [0.0, 1.0, 0.5];
     pub const VERTICAL_OFFSET: f32 = -0.950;
-
-    pub fn get_model(&self) -> Vec<Vertex> {
+}
+impl Drawable for Paddle {
+    fn get_model(&self) -> Vec<Vertex> {
         vec![
             Vertex {
                 position: [-Paddle::WIDTH / 2.0, Paddle::HEIGHT / 2.0, 0.0],
@@ -49,30 +70,9 @@ impl Paddle {
             },
         ]
     }
-}
-impl Drawable for Paddle {
-    fn draw(
-        &self,
-        frame: &mut Frame,
-        display: &Display<WindowSurface>,
-        program: &Program,
-        game_state: &GameState,
-    ) -> Result<(), Box<dyn Error>> {
-        let uniforms = uniform! {
-            offset: [self.x, Self::VERTICAL_OFFSET, 0.0],
-            window_aspect: [game_state.window_width, game_state.window_height],
-        };
-        let vertices = VertexBuffer::new(display, &self.get_model())?;
-        frame.draw(
-            &vertices,
-            IndicesSource::NoIndices {
-                primitives: glium::index::PrimitiveType::TrianglesList,
-            },
-            program,
-            &uniforms,
-            &DrawParameters::default(),
-        )?;
-        Ok(())
+
+    fn get_vertex_offset(&self) -> [f32; 3] {
+        [self.x, Self::VERTICAL_OFFSET, 0.0]
     }
 }
 
@@ -91,8 +91,9 @@ impl Ball {
     pub const WIDTH: f32 = 0.025;
     pub const HEIGHT: f32 = 0.025;
     pub const COLOR: [f32; 3] = [0.259, 0.051, 0.671];
-
-    pub fn get_model(&self) -> Vec<Vertex> {
+}
+impl Drawable for Ball {
+    fn get_model(&self) -> Vec<Vertex> {
         vec![
             Vertex {
                 position: [(Ball::WIDTH / 2.0), (Ball::HEIGHT / 2.0), 0.0],
@@ -120,30 +121,9 @@ impl Ball {
             },
         ]
     }
-}
-impl Drawable for Ball {
-    fn draw(
-        &self,
-        frame: &mut Frame,
-        display: &Display<WindowSurface>,
-        program: &Program,
-        game_state: &GameState,
-    ) -> Result<(), Box<dyn Error>> {
-        let uniforms = uniform! {
-            offset: [self.x, self.y, 0.0],
-            window_aspect: [game_state.window_width, game_state.window_height],
-        };
-        let vertices = VertexBuffer::new(display, &self.get_model())?;
-        frame.draw(
-            &vertices,
-            IndicesSource::NoIndices {
-                primitives: glium::index::PrimitiveType::TrianglesList,
-            },
-            program,
-            &uniforms,
-            &DrawParameters::default(),
-        )?;
-        Ok(())
+
+    fn get_vertex_offset(&self) -> [f32; 3] {
+        [self.x, self.y, 0.0]
     }
 }
 
@@ -152,8 +132,9 @@ impl Drawable for Ball {
 pub struct Playfield {}
 impl Playfield {
     pub const COLOR: [f32; 3] = [1.0, 1.0, 1.0];
-
-    pub fn get_model(&self) -> Vec<Vertex> {
+}
+impl Drawable for Playfield {
+    fn get_model(&self) -> Vec<Vertex> {
         vec![
             Vertex {
                 position: [1.0, 1.0, 0.0],
@@ -181,36 +162,65 @@ impl Playfield {
             },
         ]
     }
+
+    fn get_vertex_offset(&self) -> [f32; 3] {
+        [0.0, 0.0, 0.0]
+    }
 }
-impl Drawable for Playfield {
-    fn draw(
-        &self,
-        frame: &mut Frame,
-        display: &Display<WindowSurface>,
-        program: &Program,
-        game_state: &GameState,
-    ) -> Result<(), Box<dyn Error>> {
-        let uniforms = uniform! {
-            offset: [0.0_f32, 0.0_f32, 0.0_f32],
-            window_aspect: [game_state.window_width, game_state.window_height],
-        };
-        let vertices = VertexBuffer::new(display, &self.get_model())?;
-        frame.draw(
-            &vertices,
-            IndicesSource::NoIndices {
-                primitives: glium::index::PrimitiveType::TrianglesList,
+
+/// Brick
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Brick {
+    /// Position of the center of the brick
+    pub x: f32,
+    pub y: f32,
+}
+impl Brick {
+    pub const COLOR: [f32; 3] = [0.5, 0.0, 0.1];
+    pub const WIDTH: f32 = 0.02;
+    pub const HEIGHT: f32 = 0.015;
+
+    pub const ROWS: usize = 20;
+    pub const COLUMNS: usize = 40;
+}
+impl Drawable for Brick {
+    fn get_model(&self) -> Vec<Vertex> {
+        vec![
+            Vertex {
+                position: [(Brick::WIDTH / 2.0), (Brick::HEIGHT / 2.0), 0.0],
+                color: Brick::COLOR,
             },
-            program,
-            &uniforms,
-            &DrawParameters::default(),
-        )?;
-        Ok(())
+            Vertex {
+                position: [-(Brick::WIDTH / 2.0), (Brick::HEIGHT / 2.0), 0.0],
+                color: Brick::COLOR,
+            },
+            Vertex {
+                position: [-(Brick::WIDTH / 2.0), -(Brick::HEIGHT / 2.0), 0.0],
+                color: Brick::COLOR,
+            },
+            Vertex {
+                position: [(Brick::WIDTH / 2.0), (Brick::HEIGHT / 2.0), 0.0],
+                color: Brick::COLOR,
+            },
+            Vertex {
+                position: [-(Brick::WIDTH / 2.0), -(Brick::HEIGHT / 2.0), 0.0],
+                color: Brick::COLOR,
+            },
+            Vertex {
+                position: [(Brick::WIDTH / 2.0), -(Brick::HEIGHT / 2.0), 0.0],
+                color: Brick::COLOR,
+            },
+        ]
+    }
+
+    fn get_vertex_offset(&self) -> [f32; 3] {
+        [self.x, self.y, 0.0]
     }
 }
 
 /// Information relevant to the renderer
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct GameState {
+pub struct WindowState {
     pub frame_count: u64,
     pub then: Instant,
 
@@ -222,10 +232,10 @@ pub struct GameState {
     pub window_width: f32,
     pub window_height: f32,
 }
-impl GameState {
-    pub fn new(window: &Window) -> GameState {
+impl WindowState {
+    pub fn new(window: &Window) -> WindowState {
         let window_size = window.inner_size();
-        GameState {
+        WindowState {
             frame_count: 0,
             then: Instant::now(),
             last_frame_was: None,
@@ -269,9 +279,24 @@ fn main() {
     // TMP
     let mut paddle = Paddle { x: 0.0 };
     let playfield = Playfield {};
-    let mut ball = Ball { x: 0.0, y: 0.0, x_v: 0.5, y_v: -0.86602540378 };
+    let mut ball = Ball {
+        x: 0.0,
+        y: 0.0,
+        x_v: 0.5,
+        y_v: -0.86602540378,
+    };
+    let mut bricks: Vec<Vec<Brick>> = Vec::new();
+    for i in 0..Brick::ROWS {
+        bricks.push(Vec::new());
+        let x = (i as f32 * 2.0 / Brick::ROWS as f32) - 1.0;
+        for j in 0..Brick::COLUMNS {
+            // y coords are top half only
+            let y = j as f32 * 1.0 / Brick::COLUMNS as f32;
+            bricks[i].push(Brick { x, y });
+        }
+    }
 
-    let mut game_state = GameState::new(&window);
+    let mut game_state = WindowState::new(&window);
 
     event_loop
         .run(move |event, window_target| match event {
@@ -333,7 +358,7 @@ fn main() {
                 ball.x += ball.x_v * delta_t.as_secs_f32();
                 ball.y += ball.y_v * delta_t.as_secs_f32();
 
-                // reflect ball with...
+                // check ball collisions with...
 
                 // ...playfield
                 if ball.x + Ball::WIDTH / 2.0 > 1.0 {
@@ -356,11 +381,14 @@ fn main() {
                 // ...paddle
                 if ball.x - (Ball::WIDTH / 2.0) < paddle.x + (Paddle::WIDTH / 2.0)
                     && ball.x + (Ball::WIDTH / 2.0) > paddle.x - (Paddle::WIDTH / 2.0)
-                    && ball.y - (Ball::HEIGHT / 2.0) < Paddle::VERTICAL_OFFSET + (Paddle::HEIGHT / 2.0)
-                    && ball.y + (Ball::HEIGHT / 2.0) > Paddle::VERTICAL_OFFSET - (Paddle::HEIGHT / 2.0) {
-                        ball.y_v *= -1.0;
-                        ball.y -= ball.y - Ball::HEIGHT / 2.0 - Paddle::VERTICAL_OFFSET;
-                    }
+                    && ball.y - (Ball::HEIGHT / 2.0)
+                        < Paddle::VERTICAL_OFFSET + (Paddle::HEIGHT / 2.0)
+                    && ball.y + (Ball::HEIGHT / 2.0)
+                        > Paddle::VERTICAL_OFFSET - (Paddle::HEIGHT / 2.0)
+                {
+                    ball.y_v *= -1.0;
+                    ball.y -= ball.y - Ball::HEIGHT / 2.0 - Paddle::VERTICAL_OFFSET;
+                }
 
                 // draw a frame
                 let mut frame = display.draw();
@@ -373,14 +401,22 @@ fn main() {
                     .expect("unable to draw playfield to frame, exiting");
 
                 // draw ball
-                ball
-                    .draw(&mut frame, &display, &program, &game_state)
+                ball.draw(&mut frame, &display, &program, &game_state)
                     .expect("unable to draw ball to frame, exiting");
 
                 // draw paddle
                 paddle
                     .draw(&mut frame, &display, &program, &game_state)
                     .expect("unable to draw paddle to frame, exiting");
+
+                // draw bricks
+                for column in bricks.iter() {
+                    for brick in column {
+                        brick
+                            .draw(&mut frame, &display, &program, &game_state)
+                            .expect("unable to draw brick to frame, exiting");
+                    }
+                }
 
                 // wrap up
                 frame.finish().expect("unable to finish frame, exiting");
