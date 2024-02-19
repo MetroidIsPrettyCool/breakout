@@ -31,10 +31,12 @@ impl LogicState {
 
     pub fn tick(&mut self, view_state: &ViewState, delta_t: Duration) {
         // move paddle to mouse
-        self.paddle.x = (view_state.mouse_x_relative).clamp(
+        let new_paddle_x = (view_state.mouse_x_relative).clamp(
             -1.0 + (self.paddle.width / 2.0),
-            1.0 - (self.paddle.height / 2.0),
+            1.0 - (self.paddle.width / 2.0),
         );
+        self.paddle.x_v = (new_paddle_x - self.paddle.x) * delta_t.as_secs_f32();
+        self.paddle.x = new_paddle_x;
 
         // move ball
         self.ball.x += self.ball.x_v * delta_t.as_secs_f32();
@@ -80,6 +82,7 @@ impl LogicState {
         // paddle
         if !self.too_late && objs_overlap(&self.paddle, &self.ball) {
             self.ball.y_v = self.ball.y_v.abs();
+            self.ball.x_v += self.paddle.x_v * 30.0;
             self.ball.y -=
                 self.ball.y - self.ball.height / 2.0 - self.paddle.y - self.paddle.height / 2.0;
         }
