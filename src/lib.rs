@@ -9,8 +9,6 @@ use winit::{
 pub mod logic;
 use logic::GameState;
 
-pub mod game_objs;
-
 pub mod view;
 use view::WindowState;
 
