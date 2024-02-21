@@ -23,6 +23,8 @@ pub struct LogicState {
     pub bounce: Option<Bounce>,
 
     pub then: Instant,
+
+    pub game_started: bool
 }
 impl LogicState {
     pub fn new() -> LogicState {
@@ -39,10 +41,22 @@ impl LogicState {
             bounce: None,
 
             then: Instant::now(),
+
+            game_started: false,
         }
     }
 
     pub fn update(&mut self, control_state: &ControlState, now: Instant, delta_t: Duration) {
+        if !self.game_started {
+            self.game_started = control_state.clicked();
+        }
+
+        if self.game_started {
+            self.game_tick(control_state, now, delta_t);
+        }
+    }
+
+    fn game_tick(&mut self, control_state: &ControlState, now: Instant, delta_t: Duration) {
         // upkeep
         self.bounce = None;
 
@@ -146,6 +160,7 @@ impl LogicState {
             }
         }
     }
+
 }
 
 fn objs_overlap(a: &GameObject, b: &GameObject) -> bool {

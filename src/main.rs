@@ -14,11 +14,8 @@ fn main() {
         .expect("unable to create window, exiting");
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    // set up window
     let mut logic_state = LogicState::new();
-
     let mut view_state = ViewState::new(&event_loop);
-
     let mut control_state = ControlState::new();
 
     event_loop
@@ -39,12 +36,6 @@ fn main() {
 
                 window_target.exit();
             }
-            Event::WindowEvent {
-                event: WindowEvent::CursorMoved { position: p, .. },
-                ..
-            } => {
-                control_state.update_cursor_position(&view_state, p);
-            }
             Event::AboutToWait => {
                 // timey-wimey
                 let now = Instant::now();
@@ -57,7 +48,7 @@ fn main() {
 
                 view_state.update(&logic_state, now);
             }
-            _ => (),
+            _ => control_state.update(&view_state, event),
         })
         .expect("unable to run event loop, exiting");
 }

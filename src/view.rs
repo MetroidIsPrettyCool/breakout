@@ -90,7 +90,7 @@ impl ViewState {
 
     /// Draw a frame
     pub fn update(&mut self, logic_state: &LogicState, now: Instant) {
-        // TMP
+        // audio
         if let Some(bounce) = logic_state.bounce {
             if self.al_source.buffers_queued() == 1 {
                 self.al_source.stop();
@@ -118,6 +118,7 @@ impl ViewState {
             self.al_source.play();
         }
 
+        // video
         let mut frame = self.display.draw();
 
         frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
