@@ -11,20 +11,19 @@ use interaction::Bounce;
 /// Game state
 #[derive(Clone, Debug, PartialEq)]
 pub struct LogicState {
-    pub paddle: GameObject,
-    pub playfield: GameObject,
-    pub ball: GameObject,
-    pub bricks: Vec<GameObject>,
+    paddle: GameObject,
+    playfield: GameObject,
+    ball: GameObject,
+    bricks: Vec<GameObject>,
 
-    pub balls_remaining: u32,
-    pub score: u32,
+    bounce: Option<Bounce>,
 
-    pub too_late: bool,
-    pub bounce: Option<Bounce>,
+    balls_remaining: u32,
+    score: u32,
 
-    pub then: Instant,
+    too_late: bool,
 
-    pub game_started: bool
+    game_started: Option<Instant>,
 }
 impl LogicState {
     pub fn new() -> LogicState {
@@ -40,20 +39,29 @@ impl LogicState {
             too_late: false,
             bounce: None,
 
-            then: Instant::now(),
-
-            game_started: false,
+            game_started: None,
         }
     }
 
     pub fn update(&mut self, control_state: &ControlState, now: Instant, delta_t: Duration) {
-        if !self.game_started {
-            self.game_started = control_state.clicked();
+        if self.game_started.is_none() && control_state.clicked() {
+            self.game_started = Some(now);
         }
 
-        if self.game_started {
+        if self.game_started.is_some() {
             self.game_tick(control_state, now, delta_t);
         }
+    }
+
+    pub fn game_objs(&self) -> Box<dyn Iterator<Item = &GameObject> + '_> {
+        let i = [&self.playfield, &self.ball, &self.paddle]
+            .into_iter()
+            .chain(self.bricks.iter());
+        Box::new(i)
+    }
+
+    pub fn bounce(&self) -> Option<Bounce> {
+        self.bounce
     }
 
     fn game_tick(&mut self, control_state: &ControlState, now: Instant, delta_t: Duration) {
@@ -61,7 +69,7 @@ impl LogicState {
         self.bounce = None;
 
         // move paddle to mouse
-        let new_paddle_x = (control_state.mouse_x_relative).clamp(
+        let new_paddle_x = (control_state.mouse_coords().0).clamp(
             -1.0 + (self.paddle.width / 2.0),
             1.0 - (self.paddle.width / 2.0),
         );
@@ -152,7 +160,12 @@ impl LogicState {
                 self.bounce = Some(Bounce::Brick);
 
                 // update score
-                self.score += 1 * time_elapsed_to_score_mult(now.duration_since(self.then));
+                self.score += 1 * time_elapsed_to_score_mult(
+                    now.duration_since(
+                        self.game_started
+                            .expect("game logic running, but game hasn't started? exiting"),
+                    ),
+                );
 
                 // destroy the brick
                 self.bricks.remove(index);
@@ -160,7 +173,6 @@ impl LogicState {
             }
         }
     }
-
 }
 
 fn objs_overlap(a: &GameObject, b: &GameObject) -> bool {

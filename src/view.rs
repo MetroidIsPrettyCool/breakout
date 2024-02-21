@@ -25,19 +25,19 @@ const BYTES_BOUNCE_BRICK: &[u8] = include_bytes!("bounce-brick.raw");
 
 /// Information relevant to the renderer
 pub struct ViewState {
-    pub frame_count: u64,
+    frame_count: u64,
 
-    pub last_frame_was: Option<Instant>,
+    init_time: Instant,
 
-    pub window_width: f32,
-    pub window_height: f32,
+    window_width: f32,
+    window_height: f32,
 
-    pub flat_shader: Program,
-    pub window: Window,
-    pub display: Display<WindowSurface>,
+    flat_shader: Program,
+    window: Window,
+    display: Display<WindowSurface>,
 
-    pub al_context: Context,
-    pub al_source: StreamingSource,
+    al_context: Context,
+    al_source: StreamingSource,
 }
 impl ViewState {
     pub fn new(event_loop: &EventLoop<()>) -> ViewState {
@@ -74,7 +74,7 @@ impl ViewState {
         let window_size = window.inner_size();
         ViewState {
             frame_count: 0,
-            last_frame_was: None,
+            init_time: Instant::now(),
 
             window_width: (window_size.width as f32),
             window_height: (window_size.height as f32),
@@ -89,9 +89,9 @@ impl ViewState {
     }
 
     /// Draw a frame
-    pub fn update(&mut self, logic_state: &LogicState, now: Instant) {
+    pub fn update(&mut self, logic_state: &LogicState) {
         // audio
-        if let Some(bounce) = logic_state.bounce {
+        if let Some(bounce) = logic_state.bounce() {
             if self.al_source.buffers_queued() == 1 {
                 self.al_source.stop();
                 self.al_source
@@ -123,11 +123,9 @@ impl ViewState {
 
         frame.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
 
-        let mut vertices = logic_state.playfield.get_vertices();
-        vertices.extend(logic_state.ball.get_vertices());
-        vertices.extend(logic_state.paddle.get_vertices());
-        for brick in logic_state.bricks.iter() {
-            vertices.extend(brick.get_vertices());
+        let mut vertices = Vec::new();
+        for game_obj in logic_state.game_objs() {
+            vertices.extend(game_obj.get_vertices());
         }
 
         draw_flat_vertices(&vertices, &mut frame, &self)
@@ -136,7 +134,18 @@ impl ViewState {
         // wrap up
         frame.finish().expect("unable to finish frame, exiting");
         self.frame_count += 1;
-        self.last_frame_was = Some(now);
+    }
+
+    pub fn frame_count(&self) -> u64 {
+        self.frame_count
+    }
+
+    pub fn window_size(&self) -> (f32, f32) {
+        (self.window_width, self.window_height)
+    }
+
+    pub fn calculate_fps(&self) -> f32 {
+        self.frame_count as f32 / Instant::now().duration_since(self.init_time).as_secs_f32()
     }
 }
 
