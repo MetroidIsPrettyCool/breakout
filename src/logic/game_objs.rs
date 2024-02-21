@@ -19,6 +19,14 @@ pub const BRICK_HEIGHT: f32 = 0.06;
 pub const BRICK_ROWS: usize = 12;
 pub const BRICK_COLUMNS: usize = 15;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum GameObjectKind {
+    Paddle,
+    Brick(u32),
+    Playfield,
+    Ball,
+}
+
 /// Generic game object
 #[derive(Clone, Debug, PartialEq)]
 pub struct GameObject {
@@ -33,6 +41,8 @@ pub struct GameObject {
     pub y_v: f32,
     /// Model
     pub model: Vec<Vertex>,
+    /// What type of game object are we?
+    pub kind: GameObjectKind,
 }
 impl GameObject {
     pub fn new(
@@ -43,6 +53,7 @@ impl GameObject {
         x_v: f32,
         y_v: f32,
         model: Vec<Vertex>,
+        kind: GameObjectKind,
     ) -> GameObject {
         GameObject {
             x,
@@ -52,6 +63,7 @@ impl GameObject {
             x_v,
             y_v,
             model,
+            kind,
         }
     }
 
@@ -64,6 +76,7 @@ impl GameObject {
             0.0,
             0.0,
             crate::view::iso_tri_down(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_COLOR).to_vec(),
+            GameObjectKind::Paddle,
         )
     }
 
@@ -76,6 +89,7 @@ impl GameObject {
             0.0,
             0.0,
             crate::view::quad(2.0, 2.0, PLAYFIELD_COLOR).to_vec(),
+            GameObjectKind::Playfield,
         )
     }
 
@@ -89,10 +103,11 @@ impl GameObject {
             f32::cos(start_angle.to_radians()),
             f32::sin(start_angle.to_radians()),
             crate::view::quad(0.025, BALL_HEIGHT, BALL_COLOR).to_vec(),
+            GameObjectKind::Ball,
         )
     }
 
-    pub fn brick(x: f32, y: f32) -> GameObject {
+    pub fn brick(x: f32, y: f32, color: [f32; 3]) -> GameObject {
         Self::new(
             x,
             y,
@@ -100,7 +115,8 @@ impl GameObject {
             BRICK_HEIGHT,
             0.0,
             0.0,
-            crate::view::quad(BRICK_WIDTH, BRICK_HEIGHT, BRICK_COLOR).to_vec(),
+            crate::view::quad(BRICK_WIDTH, BRICK_HEIGHT, color).to_vec(),
+            GameObjectKind::Brick(1),
         )
     }
 
@@ -111,7 +127,7 @@ impl GameObject {
             for j in 0..BRICK_ROWS {
                 // y coords are top half only
                 let y = (j as f32 + 0.5) / BRICK_ROWS as f32;
-                bricks.push(Self::brick(x, y));
+                bricks.push(Self::brick(x, y, BRICK_COLOR));
             }
         }
         bricks
