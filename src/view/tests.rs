@@ -1,8 +1,8 @@
-use crate::view::Vertex;
+use crate::view::video::{quad, Vertex};
 
 #[test]
 fn quad_scaling() {
-    let q = super::quad(2.0, 2.0, [0.0, 0.0, 0.0]);
+    let q = quad(2.0, 2.0, [0.0, 0.0, 0.0]);
     assert_eq!(
         q,
         [

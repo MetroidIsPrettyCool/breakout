@@ -1,5 +1,5 @@
-use crate::view::Drawable;
-use crate::view::Vertex;
+use crate::view::video::Drawable;
+use crate::view::video::Vertex;
 
 pub const PADDLE_WIDTH: f32 = 0.25;
 pub const PADDLE_HEIGHT: f32 = 0.025;
@@ -75,7 +75,7 @@ impl GameObject {
             PADDLE_HEIGHT,
             0.0,
             0.0,
-            crate::view::iso_tri_down(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_COLOR).to_vec(),
+            crate::view::video::iso_tri_down(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_COLOR).to_vec(),
             GameObjectKind::Paddle,
         )
     }
@@ -88,7 +88,7 @@ impl GameObject {
             2.0,
             0.0,
             0.0,
-            crate::view::quad(2.0, 2.0, PLAYFIELD_COLOR).to_vec(),
+            crate::view::video::quad(2.0, 2.0, PLAYFIELD_COLOR).to_vec(),
             GameObjectKind::Playfield,
         )
     }
@@ -102,7 +102,7 @@ impl GameObject {
             BALL_HEIGHT,
             f32::cos(start_angle.to_radians()),
             f32::sin(start_angle.to_radians()),
-            crate::view::quad(0.025, BALL_HEIGHT, BALL_COLOR).to_vec(),
+            crate::view::video::quad(0.025, BALL_HEIGHT, BALL_COLOR).to_vec(),
             GameObjectKind::Ball,
         )
     }
@@ -115,7 +115,7 @@ impl GameObject {
             BRICK_HEIGHT,
             0.0,
             0.0,
-            crate::view::quad(BRICK_WIDTH, BRICK_HEIGHT, color).to_vec(),
+            crate::view::video::quad(BRICK_WIDTH, BRICK_HEIGHT, color).to_vec(),
             GameObjectKind::Brick(1),
         )
     }
