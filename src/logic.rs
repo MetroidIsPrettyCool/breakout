@@ -5,6 +5,9 @@ use crate::control::ControlState;
 pub mod game_objs;
 use game_objs::GameObject;
 
+pub mod interaction;
+use interaction::Bounce;
+
 /// Game state
 #[derive(Clone, Debug, PartialEq)]
 pub struct LogicState {
@@ -17,7 +20,7 @@ pub struct LogicState {
     pub score: u32,
 
     pub too_late: bool,
-    pub bounce: bool,
+    pub bounce: Option<Bounce>,
 
     pub then: Instant,
 }
@@ -33,15 +36,15 @@ impl LogicState {
             score: 0,
 
             too_late: false,
-            bounce: false,
+            bounce: None,
 
-	    then: Instant::now(),
+            then: Instant::now(),
         }
     }
 
     pub fn update(&mut self, control_state: &ControlState, now: Instant, delta_t: Duration) {
         // upkeep
-        self.bounce = false;
+        self.bounce = None;
 
         // move paddle to mouse
         let new_paddle_x = (control_state.mouse_x_relative).clamp(
@@ -63,21 +66,21 @@ impl LogicState {
             self.ball.x_v *= -1.0;
             self.ball.x -= self.ball.x + self.ball.width / 2.0 - 1.0;
 
-            self.bounce = true;
+            self.bounce = Some(Bounce::PlayfieldBorder);
         }
         if self.ball.x - self.ball.width / 2.0 < -1.0 {
             // left border
             self.ball.x_v *= -1.0;
             self.ball.x -= self.ball.x - self.ball.width / 2.0 + 1.0;
 
-            self.bounce = true;
+            self.bounce = Some(Bounce::PlayfieldBorder);
         }
         if self.ball.y + self.ball.height / 2.0 > 1.0 {
             // top border
             self.ball.y_v *= -1.0;
             self.ball.y -= self.ball.y + self.ball.height / 2.0 - 1.0;
 
-            self.bounce = true;
+            self.bounce = Some(Bounce::PlayfieldBorder);
         }
         if self.ball.y - self.ball.height / 2.0 < -1.0 {
             // bottom border
@@ -105,7 +108,7 @@ impl LogicState {
             self.ball.y -=
                 self.ball.y - self.ball.height / 2.0 - self.paddle.y - self.paddle.height / 2.0;
 
-            self.bounce = true;
+            self.bounce = Some(Bounce::Paddle);
         }
 
         if self.ball.y - self.ball.height / 2.0 < self.paddle.y + self.paddle.height / 2.0 {
@@ -132,8 +135,7 @@ impl LogicState {
                     self.ball.x_v *= -1.0;
                 }
 
-
-                self.bounce = true;
+                self.bounce = Some(Bounce::Brick);
 
                 // update score
                 self.score += 1 * time_elapsed_to_score_mult(now.duration_since(self.then));
@@ -155,12 +157,12 @@ fn objs_overlap(a: &GameObject, b: &GameObject) -> bool {
 
 fn time_elapsed_to_score_mult(elapsed: Duration) -> u32 {
     if elapsed < Duration::from_secs(10) {
-	10
+        10
     } else if elapsed < Duration::from_secs(30) {
-	5
+        5
     } else if elapsed < Duration::from_secs(60) {
-	2
+        2
     } else {
-	1
+        1
     }
 }

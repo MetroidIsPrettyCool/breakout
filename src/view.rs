@@ -11,10 +11,17 @@ use std::time::Instant;
 use winit::event_loop::EventLoop;
 use winit::window::Window;
 
+use crate::logic::interaction::Bounce;
 use crate::logic::LogicState;
 
 #[cfg(test)]
 mod tests;
+
+const SAMPLE_RATE: i32 = 44_000;
+
+const BYTES_BOUNCE_PADDLE: &[u8] = include_bytes!("bounce-paddle.raw");
+const BYTES_BOUNCE_PLAYFIELD_BORDER: &[u8] = include_bytes!("bounce-playfieldborder.raw");
+const BYTES_BOUNCE_BRICK: &[u8] = include_bytes!("bounce-brick.raw");
 
 /// Information relevant to the renderer
 pub struct ViewState {
@@ -31,8 +38,6 @@ pub struct ViewState {
 
     pub al_context: Context,
     pub al_source: StreamingSource,
-    pub bleep: &'static [u8],
-    pub bleep_sample_rate: i32,
 }
 impl ViewState {
     pub fn new(event_loop: &EventLoop<()>) -> ViewState {
@@ -58,13 +63,13 @@ impl ViewState {
         let al_context = al_device
             .new_context(None)
             .expect("unable to create openal context, exiting");
-        al_context.set_gain(0.1).expect("unable to set openal context gain, exiting");
+        al_context
+            .set_gain(0.1)
+            .expect("unable to set openal context gain, exiting");
 
         let al_source = al_context
             .new_streaming_source()
             .expect("unable to create openal source, exiting");
-
-        let bleep = include_bytes!("synth.raw");
 
         let window_size = window.inner_size();
         ViewState {
@@ -78,8 +83,6 @@ impl ViewState {
             window,
             display,
 
-            bleep,
-            bleep_sample_rate: 354_000,
             al_context,
             al_source,
         }
@@ -88,7 +91,7 @@ impl ViewState {
     /// Draw a frame
     pub fn update(&mut self, logic_state: &LogicState, now: Instant) {
         // TMP
-        if logic_state.bounce {
+        if let Some(bounce) = logic_state.bounce {
             if self.al_source.buffers_queued() == 1 {
                 self.al_source.stop();
                 self.al_source
@@ -98,7 +101,14 @@ impl ViewState {
 
             let buffer = self
                 .al_context
-                .new_buffer::<Stereo<u8>, &[u8]>(self.bleep, self.bleep_sample_rate)
+                .new_buffer::<Stereo<u8>, &[u8]>(
+                    match bounce {
+                        Bounce::Brick => BYTES_BOUNCE_BRICK,
+                        Bounce::Paddle => BYTES_BOUNCE_PADDLE,
+                        Bounce::PlayfieldBorder => BYTES_BOUNCE_PLAYFIELD_BORDER,
+                    },
+                    SAMPLE_RATE,
+                )
                 .expect("unable to create openal buffer, exiting");
 
             self.al_source
